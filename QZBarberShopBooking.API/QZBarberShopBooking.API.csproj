@@ -1,23 +1,33 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
-  <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
-  </PropertyGroup>
+	<PropertyGroup>
+		<TargetFramework>net10.0</TargetFramework>
+		<Nullable>enable</Nullable>
+		<ImplicitUsings>enable</ImplicitUsings>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.1" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.1">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-  </ItemGroup>
+	<ItemGroup>
+		<!-- حزم ASP.NET Core 10.0 -->
+		<PackageReference Include="AspNetCore.HealthChecks.Uris" Version="9.0.0" />
+		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.1" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.1">
+			<PrivateAssets>all</PrivateAssets>
+			<IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+		</PackageReference>
+		<PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.1" />
 
-  <ItemGroup>
-    <ProjectReference Include="..\QZBarberShopBooking.Application\QZBarberShopBooking.Application.csproj" />
-    <ProjectReference Include="..\QZBarberShopBooking.Infrastructure\QZBarberShopBooking.Infrastructure.csproj" />
-    <ProjectReference Include="..\QZBarberShopBooking.Service\QZBarberShopBooking.Service.csproj" />
-  </ItemGroup>
+		<!-- Health Checks - استخدم إصدارات .NET 10.0 -->
+		<PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="10.0.1" />
+
+		<!-- Swashbuckle - استخدم الإصدار 7 (الأفضل مع .NET 10) -->
+		<PackageReference Include="Swashbuckle.AspNetCore" Version="7.0.0" />
+		<PackageReference Include="Swashbuckle.AspNetCore.Annotations" Version="7.0.0" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\QZBarberShopBooking.Application\QZBarberShopBooking.Application.csproj" />
+		<ProjectReference Include="..\QZBarberShopBooking.Infrastructure\QZBarberShopBooking.Infrastructure.csproj" />
+		<ProjectReference Include="..\QZBarberShopBooking.Service\QZBarberShopBooking.Service.csproj" />
+	</ItemGroup>
 
 </Project>

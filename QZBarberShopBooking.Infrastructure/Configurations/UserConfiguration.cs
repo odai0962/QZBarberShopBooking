@@ -13,19 +13,16 @@ namespace QZBarberShopBooking.Infrastructure.Configurations
             {
                 builder.HasKey(u => u.Id);
 
-                // الجدول مع Schema
                 builder.ToTable("Users", schema: "identity")
                     .HasDiscriminator<string>("UserType")
                     .HasValue<User>("User")
                     .HasValue<Customer>("Customer")
                     .HasValue<Employee>("Employee");
 
-                // تعريف Discriminator
                 builder.Property("UserType")
                     .HasMaxLength(20)
                     .IsRequired();
 
-                // الخصائص الأساسية لـ User
                 builder.Property(u => u.Username)
                     .HasMaxLength(50)
                     .IsRequired();
@@ -60,13 +57,11 @@ namespace QZBarberShopBooking.Infrastructure.Configurations
                 builder.Property(u => u.RefreshTokenExpiryTime)
                     .HasColumnType("datetime2");
 
-                // العلاقات
                 builder.HasOne(u => u.Role)
                     .WithMany(r => r.Users)
                     .HasForeignKey(u => u.RoleId)
                     .OnDelete(DeleteBehavior.Restrict);
 
-                // Indexes
                 builder.HasIndex(u => u.Email)
                     .IsUnique()
                     .HasDatabaseName("IX_User_Email");
