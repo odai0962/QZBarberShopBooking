@@ -13,18 +13,12 @@ namespace QZBarberShopBooking.Infrastructure.Configurations
         {
             builder.HasKey(bs => bs.Id);
 
-            // Index مركب
             builder.HasIndex(bs => new { bs.BookingId, bs.ServiceId })
                 .HasDatabaseName("IX_BookingService_BookingService");
-
-            builder.HasIndex(bs => bs.TimeSlotId)
-                .IsUnique() // One-to-One مع TimeSlot
-                .HasDatabaseName("IX_BookingService_TimeSlot");
 
             builder.HasIndex(bs => bs.EmployeeId)
                 .HasDatabaseName("IX_BookingService_Employee");
 
-            // العلاقات
             builder.HasOne(bs => bs.Booking)
                 .WithMany(b => b.Services)
                 .HasForeignKey(bs => bs.BookingId)
@@ -40,17 +34,10 @@ namespace QZBarberShopBooking.Infrastructure.Configurations
                 .HasForeignKey(bs => bs.EmployeeId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-            builder.HasOne(bs => bs.TimeSlot)
-                .WithOne(ts => ts.BookingService)
-                .HasForeignKey<BookingService>(bs => bs.TimeSlotId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            // قيود البيانات
             builder.Property(bs => bs.Price)
                 .HasPrecision(18, 2)
                 .IsRequired();
 
-            // تسميات الجدول
             builder.ToTable("BookingServices", schema: "booking");
         }
     }

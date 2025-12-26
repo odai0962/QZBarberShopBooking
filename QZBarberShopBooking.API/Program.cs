@@ -1,194 +1,102 @@
-using Microsoft.EntityFrameworkCore;
-using QZBarberShopBooking.Domain.Entities;
+﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi.Models;
 using QZBarberShopBooking.Infrastructure.Data;
 using QZBarberShopBooking.Infrastructure.Interface;
 using QZBarberShopBooking.Infrastructure.Repositories;
-
+using QZBarberShopBooking.Infrastructure.Authentication;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// 1. Add Services to the Container
+// 1. Add services
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 
 // 2. Swagger Configuration
-//builder.Services.AddSwaggerGen(c =>
-//{
-//    c.SwaggerDoc("v1", new OpenApiInfo
-//    {
-//        Title = "Barber Shop Booking API",
-//        Version = "v1",
-//        Description = "API for managing barber shop appointments and services"
-//    });
-
-//    // Add JWT Authentication to Swagger
-//    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
-//    {
-//        Description = "JWT Authorization header using the Bearer scheme.",
-//        Name = "Authorization",
-//        In = ParameterLocation.Header,
-//        Type = SecuritySchemeType.Http,
-//        Scheme = "bearer"
-//    });
-
-//    c.AddSecurityRequirement(new OpenApiSecurityRequirement
-//    {
-//        {
-//            new OpenApiSecurityScheme
-//            {
-//                Reference = new OpenApiReference
-//                {
-//                    Type = ReferenceType.SecurityScheme,
-//                    Id = "Bearer"
-//                }
-//            },
-//            new string[] {}
-//        }
-//    });
-//});
-
-// 3. Database Configuration
-builder.Services.AddDbContext<BarberShopDbContext>(options =>
+builder.Services.AddSwaggerGen(options =>
 {
-    var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-    options.UseSqlServer(connectionString, sqlOptions =>
+    options.SwaggerDoc("v1", new OpenApiInfo
     {
-        sqlOptions.MigrationsAssembly("QZBarberShopBooking.Infrastructure");
-        sqlOptions.EnableRetryOnFailure(
-            maxRetryCount: 5,
-            maxRetryDelay: TimeSpan.FromSeconds(30),
-            errorNumbersToAdd: null
-        );
+        Title = "Q&Z Barber Shop API",
+        Version = "v1",
+        Description = "API for managing barber shop appointments and services"
     });
 
-    // Only in Development
-    if (builder.Environment.IsDevelopment())
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
-        options.EnableSensitiveDataLogging();
-        options.EnableDetailedErrors();
-    }
+        Name = "Authorization",
+        Type = SecuritySchemeType.Http,
+        Scheme = "Bearer",
+        BearerFormat = "JWT",
+        In = ParameterLocation.Header,
+        Description = "Enter 'Bearer' followed by your JWT token"
+    });
+
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
 });
 
-// 4. JWT Authentication
-var jwtSettings = builder.Configuration.GetSection("JwtSettings");
-var secretKey = jwtSettings["Secret"] ?? builder.Configuration["JWTSecretKey"] ?? "YourSuperSecretKeyHereAtLeast32CharactersLong!";
+// 3. Database
+builder.Services.AddDbContext<BarberShopDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-//builder.Services.AddAuthentication(options =>
-//{
-//    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-//    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-//})
-//.AddJwtBearer(options =>
-//{
-//    options.TokenValidationParameters = new TokenValidationParameters
-//    {
-//        ValidateIssuer = true,
-//        ValidateAudience = true,
-//        ValidateLifetime = true,
-//        ValidateIssuerSigningKey = true,
-//        ValidIssuer = jwtSettings["Issuer"] ?? "BarberShopAPI",
-//        ValidAudience = jwtSettings["Audience"] ?? "BarberShopClients",
-//        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
-//        ClockSkew = TimeSpan.Zero
-//    };
+// 4. JWT Authentication 
+builder.Services.AddJwtAuthentication(builder.Configuration);
 
-//    options.Events = new JwtBearerEvents
-//    {
-//        OnAuthenticationFailed = context =>
-//        {
-//            if (context.Exception.GetType() == typeof(SecurityTokenExpiredException))
-//            {
-//                context.Response.Headers.Append("Token-Expired", "true");
-//            }
-//            return Task.CompletedTask;
-//        }
-//    };
-//});
-
-builder.Services.AddAuthorization(options =>
-{
-    options.AddPolicy("AdminOnly", policy =>
-        policy.RequireRole("Admin"));
-
-    options.AddPolicy("EmployeeOrAdmin", policy =>
-        policy.RequireRole("Admin", "Employee"));
-
-    options.AddPolicy("CustomerOnly", policy =>
-        policy.RequireRole("Customer"));
-});
-
-// 5. Repository Pattern & Dependency Injection
+// 5. Repositories
 builder.Services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
-// Register Services (You'll create these)
-//builder.Services.AddScoped<IUserService, UserService>();
-//builder.Services.AddScoped<IAuthService, AuthService>();
-//builder.Services.AddScoped<IBookingService, BookingService>();
-//builder.Services.AddScoped<IServiceService, ServiceService>();
-//builder.Services.AddScoped<IEmployeeService, EmployeeService>();
-//builder.Services.AddScoped<ITimeSlotService, TimeSlotService>();
-
-//6.AutoMapper
-//builder.Services.AddAutoMapper(typeof(MappingProfile).Assembly);
-
-// 7. HttpContext Accessor
-builder.Services.AddHttpContextAccessor();
-
-// 8. CORS Configuration
-var allowedOrigins = builder.Configuration.GetSection("AllowedOrigins").Get<string[]>()
-    ?? new[] { "http://localhost:3000", "http://localhost:4200", "https://localhost:5001" };
-
+// 6. CORS
 builder.Services.AddCors(options =>
-{
-    options.AddPolicy("BarberShopCors", policy =>
-    {
-        policy.WithOrigins(allowedOrigins)
-              .AllowAnyMethod()
-              .AllowAnyHeader()
-              .AllowCredentials();
-    });
-});
+    options.AddPolicy("AllowAll", policy =>
+        policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader()));
 
-// 9. Exception Handling
-//builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
-//builder.Services.AddProblemDetails();
-
-// 10. Health Checks
-//builder.Services.AddHealthChecks()
-//    .AddDbContextCheck<BarberShopDbContext>();
+// 7. Health Checks
+builder.Services.AddHealthChecks()
+    .AddDbContextCheck<BarberShopDbContext>(
+        name: "database",
+        tags: new[] { "db", "sqlserver" })
+    .AddUrlGroup(new Uri("https://google.com"), name: "External API");
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline
+// 8. Configure pipeline
 if (app.Environment.IsDevelopment())
 {
-    //app.UseSwagger();
-    //app.UseSwaggerUI(c =>
-    //{
-    //    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Barber Shop API V1");
-    //    c.RoutePrefix = "swagger";
-    //});
-
-    // Apply migrations automatically in development
-    using (var scope = app.Services.CreateScope())
+    app.UseSwagger();
+    app.UseSwaggerUI(options =>
     {
-        var dbContext = scope.ServiceProvider.GetRequiredService<BarberShopDbContext>();
-        dbContext.Database.Migrate();
-    }
+        options.SwaggerEndpoint("/swagger/v1/swagger.json", "Q&Z Barber Shop API v1");
+        options.RoutePrefix = "swagger";
+    });
 }
 
 app.UseHttpsRedirection();
-app.UseCors("BarberShopCors");
+app.UseCors("AllowAll");
 app.UseAuthentication();
 app.UseAuthorization();
-
-// Exception handler must be after CORS but before endpoints
-app.UseExceptionHandler();
-
-// Health Check endpoint
-app.MapHealthChecks("/health");
-
 app.MapControllers();
+
+// 9. Health endpoint 
+app.MapGet("/health", () => Results.Json(new
+{
+    Status = "Healthy",
+    Timestamp = DateTime.UtcNow,
+    Database = "Connected"
+}));
+
+app.MapHealthChecks("/healthz");
 
 app.Run();

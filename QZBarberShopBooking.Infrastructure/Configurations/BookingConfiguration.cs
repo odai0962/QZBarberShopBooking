@@ -13,26 +13,23 @@ namespace QZBarberShopBooking.Infrastructure.Configurations
         {
             builder.HasKey(b => b.Id);
 
-            // Index على BookingNumber للبحث السريع
             builder.HasIndex(b => b.BookingNumber)
                 .IsUnique()
                 .HasDatabaseName("IX_Booking_BookingNumber");
 
-            // Index مركب للاستعلامات الشائعة
             builder.HasIndex(b => new { b.BookingDate, b.Status })
                 .HasDatabaseName("IX_Booking_DateStatus");
 
             builder.HasIndex(b => new { b.CustomerId, b.BookingDate })
                 .HasDatabaseName("IX_Booking_CustomerDate");
 
-            // العلاقات
             builder.HasOne(b => b.Customer)
                 .WithMany(c => c.Bookings)
                 .HasForeignKey(b => b.CustomerId)
                 .OnDelete(DeleteBehavior.Restrict);
 
             builder.HasOne(b => b.AssignedEmployee)
-                .WithMany()
+                .WithMany(e => e.Bookings)
                 .HasForeignKey(b => b.EmployeeId)
                 .OnDelete(DeleteBehavior.Restrict)
                 .IsRequired(false);

@@ -9,8 +9,8 @@ namespace QZBarberShopBooking.Domain.Entities
     {
         public string? Specialization { get; set; }
         public string? Bio { get; set; }
-        public decimal? HourlyRate { get; set; }   
-        public DateTime? HireDate { get; set; }     
+        public decimal? HourlyRate { get; set; }
+        public DateTime? HireDate { get; set; }
         public bool? IsAvailableForBooking { get; set; }
 
         public ICollection<EmployeeService> Services { get; set; } = new List<EmployeeService>();
@@ -18,5 +18,6 @@ namespace QZBarberShopBooking.Domain.Entities
         public ICollection<EmployeeTimeOff> TimeOffs { get; set; }
         public ICollection<TimeSlot> TimeSlots { get; set; }
         public ICollection<BookingService> BookingServices { get; set; } = new List<BookingService>();
+        public ICollection<Booking> Bookings { get; set; } = new List<Booking>();
     }
 }
