@@ -189,8 +189,8 @@ namespace QZBarberShopBooking.Application.Helpers
 
                 foreach (var item in filterItems)
                 {
-                    var value = item.value;
-                    var matchMode = item.matchMode;
+                    var value = item.Value;
+                    var matchMode = item.MatchMode;
 
                     var parameter = Expression.Parameter(typeof(T), "x");
                     Expression property = GetNestedPropertyExpression(parameter, fieldPath);

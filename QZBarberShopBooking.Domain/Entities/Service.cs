@@ -12,10 +12,7 @@ namespace QZBarberShopBooking.Domain.Entities
         public decimal BasePrice { get; set; }
         public string? Category { get; set; }
         public bool IsActive { get; set; } = true;
-
-        // Navigation
         public ICollection<EmployeeService> EmployeeServices { get; set; } = new List<EmployeeService>();
         public ICollection<BookingService> BookingServices { get; set; } = new List<BookingService>();
     }
-
 }
