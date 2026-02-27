@@ -12,13 +12,10 @@ namespace QZBarberShopBooking.Domain.Entities
         public DateTime BookingDate { get; set; }
         public BookingStatus Status { get; set; }
         public string? Notes { get; set; }
-
         public decimal SubTotal { get; set; }
         public decimal? DiscountAmount { get; set; }
         public decimal TaxAmount { get; set; }
         public decimal TotalAmount { get; set; }
-
-
         public bool IsDeleted { get; set; }
         public int? DeletedBy { get; set; }
         public DateTime? DeletedDate { get; set; }
@@ -26,17 +23,10 @@ namespace QZBarberShopBooking.Domain.Entities
         public int? ModifiedBy { get; set; }
         public DateTime CreationDate { get; set; }
         public DateTime? ModificationDate { get; set; }
-
-
         public int CustomerId { get; set; }
         public Customer Customer { get; set; }
-
         public int? EmployeeId { get; set; } 
         public Employee? AssignedEmployee { get; set; }
-
         public ICollection<BookingService> Services { get; set; } = new List<BookingService>();
-
-
-
     }
 }

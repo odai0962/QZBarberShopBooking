@@ -3,8 +3,11 @@ using QZBarberShopBooking.Infrastructure.Data;
 using QZBarberShopBooking.Infrastructure.Interface;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Linq.Expressions;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace QZBarberShopBooking.Infrastructure.Repositories
 {
@@ -21,6 +24,7 @@ namespace QZBarberShopBooking.Infrastructure.Repositories
 
         #region Read Operations
         public virtual T GetById(int id) => _dbSet.Find(id);
+
         public virtual async Task<T?> GetByIdAsync(int id) => await _dbSet.FindAsync(id);
 
         public virtual IQueryable<T> GetAll(bool isTracking = false)
@@ -50,13 +54,18 @@ namespace QZBarberShopBooking.Infrastructure.Repositories
 
         #region Create Operations
         public virtual void Insert(T entity) => _dbSet.Add(entity);
-        public virtual async Task InsertAsync(T entity, CancellationToken cancellationToken) => await _dbSet.AddAsync(entity, cancellationToken);
+
+        public virtual async Task InsertAsync(T entity, CancellationToken cancellationToken = default)
+            => await _dbSet.AddAsync(entity, cancellationToken);
+
         public virtual void InsertRange(IEnumerable<T> entities)
         {
             _dbSet.AddRange(entities);
             _context.SaveChanges();
         }
-        public virtual async Task InsertRangeAsync(IEnumerable<T> entities) => await _dbSet.AddRangeAsync(entities);
+
+        public virtual async Task InsertRangeAsync(IEnumerable<T> entities, CancellationToken cancellationToken = default)
+            => await _dbSet.AddRangeAsync(entities, cancellationToken);
         #endregion
 
         #region Update Operations
@@ -65,6 +74,13 @@ namespace QZBarberShopBooking.Infrastructure.Repositories
             _dbSet.Attach(entity);
             _context.Entry(entity).State = EntityState.Modified;
             _context.SaveChanges();
+        }
+
+        public virtual async Task UpdateAsync(T entity, CancellationToken cancellationToken = default)
+        {
+            _dbSet.Attach(entity);
+            _context.Entry(entity).State = EntityState.Modified;
+            await _context.SaveChangesAsync(cancellationToken);
         }
 
         public virtual void UpdateRange(IEnumerable<T> entities)
@@ -83,22 +99,32 @@ namespace QZBarberShopBooking.Infrastructure.Repositories
             if (entity != null) Delete(entity);
         }
 
-        public virtual async Task DeleteAsync(int id)
+        public virtual async Task DeleteAsync(int id, CancellationToken cancellationToken = default)
         {
             var entity = await GetByIdAsync(id);
-            if (entity != null) await DeleteAsync(entity);
+            if (entity != null)
+                await DeleteAsync(entity, cancellationToken);
         }
 
         public virtual void Delete(T entity) => _dbSet.Remove(entity);
-        public virtual async Task DeleteAsync(T entity) => await Task.Run(() => _dbSet.Remove(entity));
+
+        public virtual async Task DeleteAsync(T entity, CancellationToken cancellationToken = default)
+        {
+            _dbSet.Remove(entity);
+            await _context.SaveChangesAsync(cancellationToken);
+        }
 
         public virtual void DeleteRange(IEnumerable<T> entities)
         {
             _dbSet.RemoveRange(entities);
             _context.SaveChanges();
         }
-        public virtual async Task DeleteRangeAsync(IEnumerable<T> entities)
-            => await Task.Run(() => _dbSet.RemoveRange(entities));
+
+        public virtual async Task DeleteRangeAsync(IEnumerable<T> entities, CancellationToken cancellationToken = default)
+        {
+            _dbSet.RemoveRange(entities);
+            await _context.SaveChangesAsync(cancellationToken);
+        }
         #endregion
 
         #region Utility Operations
@@ -110,4 +136,3 @@ namespace QZBarberShopBooking.Infrastructure.Repositories
         #endregion
     }
 }
-

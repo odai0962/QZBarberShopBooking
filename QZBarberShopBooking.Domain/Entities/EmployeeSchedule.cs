@@ -8,7 +8,6 @@ namespace QZBarberShopBooking.Domain.Entities
     {
         public int EmployeeId { get; set; }
         public Employee Employee { get; set; }
-
         public DayOfWeek DayOfWeek { get; set; }
         public TimeSpan StartTime { get; set; }
         public TimeSpan EndTime { get; set; }

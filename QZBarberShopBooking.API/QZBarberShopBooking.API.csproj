@@ -7,7 +7,6 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<!-- حزم ASP.NET Core 10.0 -->
 		<PackageReference Include="AspNetCore.HealthChecks.Uris" Version="9.0.0" />
 		<PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.1" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.1">
@@ -16,10 +15,8 @@
 		</PackageReference>
 		<PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.1" />
 
-		<!-- Health Checks - استخدم إصدارات .NET 10.0 -->
 		<PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" Version="10.0.1" />
 
-		<!-- Swashbuckle - استخدم الإصدار 7 (الأفضل مع .NET 10) -->
 		<PackageReference Include="Swashbuckle.AspNetCore" Version="7.0.0" />
 		<PackageReference Include="Swashbuckle.AspNetCore.Annotations" Version="7.0.0" />
 	</ItemGroup>

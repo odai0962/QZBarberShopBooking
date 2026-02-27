@@ -9,7 +9,6 @@ namespace QZBarberShopBooking.Domain.Entities
     {
         public int PermissionId { get; set; }
         public Permission Permission { get; set; }
-
         public int RoleId { get; set; }
         public UserRole Role { get; set; }
     }

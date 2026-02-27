@@ -19,13 +19,13 @@ namespace QZBarberShopBooking.Application.DTO.Shared
     }
     public class FilterItem
     {
-        public object value { get; set; }
-        public MatchModeEnum matchMode { get; set; }
+        public object Value { get; set; }
+        public MatchModeEnum MatchMode { get; set; }
     }
     public class Pagination
     {
         public int Page { get; set; }
-        public string? kw { get; set; }
+        public string? Keyword { get; set; }
         public Dictionary<string, List<FilterItem>> Filters { get; set; } = new();
     }
 }
