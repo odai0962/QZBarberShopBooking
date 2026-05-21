@@ -30,6 +30,6 @@ namespace QZBarberShopBooking.Application.DTO.Shared
         public bool SortDescending { get; set; }
 
         [JsonPropertyName("filters")]
-        public Dictionary<string, object>? Filters { get; set; }
+        public Dictionary<string, List<FilterItem>>? Filters { get; set; }
     }
 }

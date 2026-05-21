@@ -1,14 +1,8 @@
 ﻿using Microsoft.AspNetCore.Diagnostics;
-using Microsoft.AspNetCore.Diagnostics.HealthChecks;
-using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.OpenApi.Models;
 using QZBarberShopBooking.API.Middleware;
 using QZBarberShopBooking.Application.DTO.Shared;
-using QZBarberShopBooking.Application.Exceptions;
-using QZBarberShopBooking.Application.Extensions;
-using QZBarberShopBooking.Application.Helpers;  // ✅ إضافة هذا الـ using
 using QZBarberShopBooking.Application.Interfaces;
 using QZBarberShopBooking.Infrastructure.Authentication;
 using QZBarberShopBooking.Infrastructure.Data;

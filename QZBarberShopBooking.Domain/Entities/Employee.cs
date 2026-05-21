@@ -13,8 +13,8 @@ namespace QZBarberShopBooking.Domain.Entities
         public bool? IsAvailableForBooking { get; set; }
         public ICollection<EmployeeService> Services { get; set; } = new List<EmployeeService>();
         public ICollection<EmployeeSchedule> Schedules { get; set; } = new List<EmployeeSchedule>();
-        public ICollection<EmployeeTimeOff> TimeOffs { get; set; }
-        public ICollection<TimeSlot> TimeSlots { get; set; }
+        public ICollection<EmployeeTimeOff> TimeOffs { get; set; } = new List<EmployeeTimeOff>();
+        public ICollection<TimeSlot> TimeSlots { get; set; } = new List<TimeSlot>();
         public ICollection<BookingService> BookingServices { get; set; } = new List<BookingService>();
         public ICollection<Booking> Bookings { get; set; } = new List<Booking>();
     }

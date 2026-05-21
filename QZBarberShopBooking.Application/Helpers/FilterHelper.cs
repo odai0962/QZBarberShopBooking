@@ -32,7 +32,10 @@ namespace QZBarberShopBooking.Application.Helpers
 
                 if (propertyType == typeof(Boolean))
                 {
-                    return Expression.Equal(property, Expression.Constant(Convert.ToBoolean(value.ToString())));
+                    if (!bool.TryParse(value.ToString(), out var boolValue))
+                        return null;
+                    var constant = BuildConstantExpression(boolValue, property.Type);
+                    return Expression.Equal(property, constant);
                 }
             }
             return null;
@@ -45,39 +48,29 @@ namespace QZBarberShopBooking.Application.Helpers
 
                 if (propertyType == typeof(int) || propertyType == typeof(int?))
                 {
-                    int intValue = Convert.ToInt32(value.ToString());
-                    if (methodName == "Equals")
+                    if (!int.TryParse(value.ToString(), NumberStyles.Integer, CultureInfo.InvariantCulture, out var intValue))
+                        return null;
+                    var constant = BuildConstantExpression(intValue, property.Type);
+                    return methodName switch
                     {
-                        return Expression.Equal(property, Expression.Constant(intValue));
-
-                    }
-                    else if (methodName == "GreaterThan")
-                    {
-                        return Expression.GreaterThan(property, Expression.Constant(intValue));
-                    }
-                    else if (methodName == "LessThan")
-                    {
-                        return Expression.LessThan(property, Expression.Constant(intValue));
-                    }
+                        "Equals" => Expression.Equal(property, constant),
+                        "GreaterThan" => Expression.GreaterThan(property, constant),
+                        "LessThan" => Expression.LessThan(property, constant),
+                        _ => null
+                    };
                 }
                 else if (propertyType == typeof(decimal) || propertyType == typeof(decimal?))
                 {
-                    decimal decimalValue = Convert.ToDecimal(value.ToString());
-                    if (methodName == "Equals")
+                    if (!decimal.TryParse(value.ToString(), NumberStyles.Number, CultureInfo.InvariantCulture, out var decimalValue))
+                        return null;
+                    var constant = BuildConstantExpression(decimalValue, property.Type);
+                    return methodName switch
                     {
-                        return Expression.Equal(
-                            property,
-                            Expression.Constant(decimalValue, typeof(decimal?))
-                        );
-                    }
-                    else if (methodName == "GreaterThan")
-                    {
-                        return Expression.GreaterThan(property, Expression.Constant(decimalValue));
-                    }
-                    else if (methodName == "LessThan")
-                    {
-                        return Expression.LessThan(property, Expression.Constant(decimalValue));
-                    }
+                        "Equals" => Expression.Equal(property, constant),
+                        "GreaterThan" => Expression.GreaterThan(property, constant),
+                        "LessThan" => Expression.LessThan(property, constant),
+                        _ => null
+                    };
                 }
             }
             return null;
@@ -90,25 +83,32 @@ namespace QZBarberShopBooking.Application.Helpers
 
                 if (propertyType == typeof(DateTime) || propertyType == typeof(DateTime?))
                 {
-                    DateTime dateValue = DateTime.ParseExact(value.ToString(), "dd/MM/yyyy", CultureInfo.InvariantCulture);
+                    if (!DateTime.TryParse(value.ToString(), CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal | DateTimeStyles.AdjustToUniversal, out var dateValue))
+                        return null;
 
-                    Expression dateConstant = Expression.Constant(dateValue, property.Type);
-
-                    if (methodName == "Equals")
+                    var dateConstant = BuildConstantExpression(dateValue, property.Type);
+                    return methodName switch
                     {
-                        return Expression.Equal(property, dateConstant);
-                    }
-                    else if (methodName == "GreaterThan")
-                    {
-                        return Expression.GreaterThan(property, dateConstant);
-                    }
-                    else if (methodName == "LessThan")
-                    {
-                        return Expression.LessThan(property, dateConstant);
-                    }
+                        "Equals" => Expression.Equal(property, dateConstant),
+                        "GreaterThan" => Expression.GreaterThan(property, dateConstant),
+                        "LessThan" => Expression.LessThan(property, dateConstant),
+                        _ => null
+                    };
                 }
             }
             return null;
+        }
+
+        private static Expression BuildConstantExpression(object value, Type targetType)
+        {
+            // If targetType is nullable, get underlying
+            var underlying = Nullable.GetUnderlyingType(targetType) ?? targetType;
+            var constant = Expression.Constant(Convert.ChangeType(value, underlying, CultureInfo.InvariantCulture), underlying);
+            if (underlying != targetType)
+            {
+                return Expression.Convert(constant, targetType);
+            }
+            return constant;
         }
 
         //public static IQueryable<T> ApplyFilters<T>(IQueryable<T> query, Dictionary<string, List<FilterItem>> filters)
@@ -233,12 +233,19 @@ namespace QZBarberShopBooking.Application.Helpers
 
         private static Expression GetNestedPropertyExpression(Expression parameter, string propertyPath)
         {
-            Expression property = parameter;
-            foreach (var prop in propertyPath.Split('.'))
+            try
             {
-                property = Expression.PropertyOrField(property, prop);
+                Expression property = parameter;
+                foreach (var prop in propertyPath.Split('.'))
+                {
+                    property = Expression.PropertyOrField(property, prop);
+                }
+                return property;
             }
-            return property;
+            catch
+            {
+                return null;
+            }
         }
 
         private static Type GetMemberType(MemberInfo member)

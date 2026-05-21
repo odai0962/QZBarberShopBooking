@@ -11,6 +11,9 @@ namespace QZBarberShopBooking.Domain.Entities
     {
         public string BookingNumber { get; set; } = Guid.NewGuid().ToString()[..8].ToUpper();
         public DateTime BookingDate { get; set; }
+        // overall reserved interval for the booking (stored in UTC)
+        public DateTime StartTimeUtc { get; set; }
+        public DateTime EndTimeUtc { get; set; }
         public BookingStatus Status { get; set; }
         public string? Notes { get; set; }
         public decimal SubTotal { get; set; }
@@ -26,8 +29,9 @@ namespace QZBarberShopBooking.Domain.Entities
         public DateTime? ModificationDate { get; set; }
         public int CustomerId { get; set; }
         public Customer Customer { get; set; }
-        public int? EmployeeId { get; set; }
-        public Employee? AssignedEmployee { get; set; }
+        // Booking must be assigned to a specific employee (barber) chosen by the customer
+        public int EmployeeId { get; set; }
+        public Employee AssignedEmployee { get; set; }
         public ICollection<BookingService> Services { get; set; } = new List<BookingService>();
     }
 }

@@ -7,10 +7,9 @@ namespace QZBarberShopBooking.Domain.Entities
     public class TimeSlot :TEntity
     {
 
-        public DateTime StartTime { get; set; }
-        public DateTime EndTime { get; set; }
-        public int? BookingServiceId { get; set; } 
-        public BookingService? BookingService { get; set; } 
+        // availability slot stored in UTC
+        public DateTime StartTimeUtc { get; set; }
+        public DateTime EndTimeUtc { get; set; }
         public int EmployeeId { get; set; }
         public Employee Employee { get; set; }
     }
