@@ -1,5 +1,5 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
-using QZBarberShopBooking.Application.Interfaces;
+using QZBarberShopBooking.Infrastructure.Interface;
 using QZBarberShopBooking.Infrastructure.Repositories;
 using QZBarberShopBooking.Service.DI.DIType;
 using System;

@@ -1,6 +1,5 @@
 ﻿using QZBarberShopBooking.Application.Enums;
-using QZBarberShopBooking.Domain.Common;
-using QZBarberShopBooking.Domain.Enums;
+using QZBarberShopBooking.Application.Models.Interfaces;
 using System;
 using System.Collections.Generic;
 using System.Text;
@@ -26,7 +25,7 @@ namespace QZBarberShopBooking.Domain.Entities
         public DateTime? ModificationDate { get; set; }
         public int CustomerId { get; set; }
         public Customer Customer { get; set; }
-        public int? EmployeeId { get; set; }
+        public int? EmployeeId { get; set; } 
         public Employee? AssignedEmployee { get; set; }
         public ICollection<BookingService> Services { get; set; } = new List<BookingService>();
     }

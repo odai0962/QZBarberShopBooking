@@ -4,7 +4,6 @@ using System.Security.Cryptography;
 using System.Text;
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
-using System.Linq.Expressions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using QZBarberShopBooking.Application.DTO.Auth;
@@ -12,6 +11,7 @@ using QZBarberShopBooking.Application.Exceptions;
 using QZBarberShopBooking.Application.Helpers;
 using QZBarberShopBooking.Application.Interfaces;
 using QZBarberShopBooking.Domain.Entities;
+using QZBarberShopBooking.Infrastructure.Interface;
 using QZBarberShopBooking.Service.DI.DIType;
 
 namespace QZBarberShopBooking.Service.Service.Auth
@@ -62,7 +62,13 @@ namespace QZBarberShopBooking.Service.Service.Auth
                 throw new UnauthorizedException("Account is deactivated");
 
             var tokens = GenerateTokens(user);
-            await SetRefreshTokenAsync(user, tokens, cancellationToken);
+
+            user.RefreshToken = tokens.RefreshToken;
+            user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
+
+            await _userRepository.UpdateAsync(user, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+
             return tokens;
         }
 
@@ -89,7 +95,12 @@ namespace QZBarberShopBooking.Service.Service.Auth
 
             var tokens = GenerateTokens(customer);
 
-            await SetRefreshTokenAsync(customer, tokens, cancellationToken);
+            customer.RefreshToken = tokens.RefreshToken;
+            customer.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
+
+            await _customerRepository.UpdateAsync(customer, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+
             return tokens;
         }
 
@@ -112,7 +123,13 @@ namespace QZBarberShopBooking.Service.Service.Auth
                 throw new UnauthorizedException("Refresh token expired");
 
             var tokens = GenerateTokens(user);
-            await SetRefreshTokenAsync(user, tokens, cancellationToken);
+
+            user.RefreshToken = tokens.RefreshToken;
+            user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(7);
+
+            await _userRepository.UpdateAsync(user, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
+
             return tokens;
         }
 
@@ -199,170 +216,6 @@ namespace QZBarberShopBooking.Service.Service.Auth
             using var rng = RandomNumberGenerator.Create();
             rng.GetBytes(bytes);
             return Convert.ToBase64String(bytes);
-        }
-
-        private static string GenerateResetToken()
-        {
-            var bytes = new byte[32];
-            using var rng = RandomNumberGenerator.Create();
-            rng.GetBytes(bytes);
-            // use Base64Url to be URL-safe
-            return Base64UrlEncoder.Encode(bytes);
-        }
-
-        private static string HashTokenSha256(string token)
-        {
-            using var sha = SHA256.Create();
-            var bytes = Encoding.UTF8.GetBytes(token);
-            var hash = sha.ComputeHash(bytes);
-            return Base64UrlEncoder.Encode(hash);
-        }
-
-        private async Task SetRefreshTokenAsync(QZBarberShopBooking.Domain.Entities.User user, AuthResponseDto tokens, CancellationToken cancellationToken)
-        {
-            user.RefreshToken = tokens.RefreshToken;
-            var days = int.TryParse(_configuration["JwtSettings:RefreshTokenDays"], out var d) ? d : 7;
-            user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(days);
-
-            switch (user)
-            {
-                case Customer customer:
-                    await _customerRepository.UpdateAsync(customer, cancellationToken);
-                    break;
-                case Employee employee:
-                    await _employeeRepository.UpdateAsync(employee, cancellationToken);
-                    break;
-                default:
-                    await _userRepository.UpdateAsync(user, cancellationToken);
-                    break;
-            }
-
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
-        }
-
-        // Register an employee account
-        public async Task<AuthResponseDto> RegisterEmployeeAsync(RegisterDto registerDto, CancellationToken cancellationToken = default)
-        {
-            // Prefer normalized columns if available (NormalizedEmail / NormalizedUserName)
-            var normalizedEmail = registerDto.Email.ToUpperInvariant();
-            var normalizedUsername = registerDto.Username.ToUpperInvariant();
-
-            bool emailExists = false;
-            bool usernameExists = false;
-
-            // helper to build expression dynamically: e => e.Property == value
-            Expression<Func<QZBarberShopBooking.Domain.Entities.User, bool>> BuildEquals(string propertyName, string value)
-            {
-                var param = Expression.Parameter(typeof(QZBarberShopBooking.Domain.Entities.User), "e");
-                var prop = Expression.PropertyOrField(param, propertyName);
-                var constant = Expression.Constant(value);
-                var body = Expression.Equal(prop, constant);
-                return Expression.Lambda<Func<QZBarberShopBooking.Domain.Entities.User, bool>>(body, param);
-            }
-
-            var userType = typeof(QZBarberShopBooking.Domain.Entities.User);
-            if (userType.GetProperty("NormalizedEmail") != null)
-            {
-                var expr = BuildEquals("NormalizedEmail", normalizedEmail);
-                emailExists = await _userRepository.AnyAsync(expr);
-            }
-            else
-            {
-                emailExists = await _userRepository.AnyAsync(u => u.Email.ToLower() == registerDto.Email.ToLower());
-            }
-
-            if (userType.GetProperty("NormalizedUserName") != null)
-            {
-                var expr = BuildEquals("NormalizedUserName", normalizedUsername);
-                usernameExists = await _userRepository.AnyAsync(expr);
-            }
-            else
-            {
-                usernameExists = await _userRepository.AnyAsync(u => u.Username.ToLower() == registerDto.Username.ToLower());
-            }
-
-            if (emailExists)
-                throw new ValidationException(new Dictionary<string, string[]> { { "Email", new[] { "Email already registered" } } });
-            if (usernameExists)
-                throw new ValidationException(new Dictionary<string, string[]> { { "Username", new[] { "Username already taken" } } });
-
-            var role = await _roleRepository.GetAll()
-                .FirstOrDefaultAsync(r => r.Name == "Employee", cancellationToken)
-                ?? throw new NotFoundException("Role", "Employee");
-
-            var employee = _mapper.Map<Employee>(registerDto);
-            employee.PasswordHash = _passwordService.HashPassword(registerDto.Password);
-            employee.RoleId = role.Id;
-            employee.IsActive = true;
-            employee.CreationDate = DateTime.UtcNow;
-            employee.HireDate = DateTime.UtcNow;
-
-            await _employeeRepository.InsertAsync(employee, cancellationToken);
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
-
-            var tokens = GenerateTokens(employee);
-            await SetRefreshTokenAsync(employee, tokens, cancellationToken);
-
-            return tokens;
-        }
-
-        public async Task<bool> ChangePasswordAsync(int userId, string oldPassword, string newPassword, CancellationToken cancellationToken = default)
-        {
-            var user = await _userRepository.GetByIdAsync(userId) ?? throw new NotFoundException("User", userId);
-
-            if (!_passwordService.VerifyPassword(user.PasswordHash, oldPassword))
-                throw new UnauthorizedException("Invalid current password");
-
-            user.PasswordHash = _passwordService.HashPassword(newPassword);
-            await _userRepository.UpdateAsync(user, cancellationToken);
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
-
-            return true;
-        }
-
-        public async Task<bool> ResetPasswordAsync(string email, CancellationToken cancellationToken = default)
-        {
-            var user = await _userRepository.GetAll()
-                .FirstOrDefaultAsync(u => u.Email.ToLowerInvariant() == email.ToLowerInvariant(), cancellationToken)
-                ?? throw new NotFoundException("User", email);
-
-            var token = GenerateResetToken();
-            var hashed = HashTokenSha256(token);
-            // store hashed token in URL-safe Base64
-            user.ResetPasswordToken = hashed;
-            user.ResetPasswordTokenExpiry = DateTime.UtcNow.AddHours(1);
-
-            await _userRepository.UpdateAsync(user, cancellationToken);
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
-
-            // TODO: send raw token to user's email via Email service
-            return true;
-        }
-
-        public async Task<bool> VerifyResetTokenAsync(string email, string token, string newPassword, CancellationToken cancellationToken = default)
-        {
-            var user = await _userRepository.GetAll()
-                .FirstOrDefaultAsync(u => u.Email.ToLowerInvariant() == email.ToLowerInvariant(), cancellationToken)
-                ?? throw new NotFoundException("User", email);
-
-            var hashed = HashTokenSha256(token);
-            if (!user.ResetPasswordTokenExpiry.HasValue || user.ResetPasswordTokenExpiry.Value < DateTime.UtcNow)
-                throw new UnauthorizedException("Invalid or expired reset token");
-
-            var stored = user.ResetPasswordToken ?? string.Empty;
-            var storedBytes = Base64UrlEncoder.DecodeBytes(stored);
-            var hashedBytes = Base64UrlEncoder.DecodeBytes(hashed);
-            if (!CryptographicOperations.FixedTimeEquals(storedBytes, hashedBytes))
-                throw new UnauthorizedException("Invalid or expired reset token");
-
-            user.PasswordHash = _passwordService.HashPassword(newPassword);
-            user.ResetPasswordToken = null;
-            user.ResetPasswordTokenExpiry = null;
-
-            await _userRepository.UpdateAsync(user, cancellationToken);
-            await _unitOfWork.SaveChangesAsync(cancellationToken);
-
-            return true;
         }
 
         #endregion

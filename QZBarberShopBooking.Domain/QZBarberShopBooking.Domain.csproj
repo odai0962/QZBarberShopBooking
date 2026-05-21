@@ -1,11 +1,13 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-	<PropertyGroup>
-		<TargetFramework>net10.0</TargetFramework>
-		<ImplicitUsings>enable</ImplicitUsings>
-		<!-- Infrastructure-level package references (e.g. AutoMapper, JWT) are intentionally omitted from the Domain project.
-         Per Clean Architecture guidance, those packages belong in Infrastructure/Service projects. -->
-		<Nullable>enable</Nullable>
-	</PropertyGroup>
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\QZBarberShopBooking.Application\QZBarberShopBooking.Application.csproj" />
+  </ItemGroup>
 
 </Project>

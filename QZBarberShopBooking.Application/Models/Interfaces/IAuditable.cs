@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace QZBarberShopBooking.Domain.Common
+namespace QZBarberShopBooking.Application.Models.Interfaces
 {
     public interface IAuditable
     {

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace QZBarberShopBooking.Domain.Enums
+namespace QZBarberShopBooking.Application.Enums
 {
     public enum UserType
     {
