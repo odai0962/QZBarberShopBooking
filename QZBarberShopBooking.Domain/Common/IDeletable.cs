@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace QZBarberShopBooking.Application.Models.Interfaces
+namespace QZBarberShopBooking.Domain.Common
 {
     public interface IDeletable
     {

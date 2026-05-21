@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Text;
 
-namespace QZBarberShopBooking.Infrastructure.Interface
+namespace QZBarberShopBooking.Application.Interfaces
 {
     public interface IRepository<T> where T : class
     {
@@ -35,6 +35,7 @@ namespace QZBarberShopBooking.Infrastructure.Interface
         Task DeleteRangeAsync(IEnumerable<T> entities, CancellationToken cancellationToken = default);
 
         Task<bool> AnyAsync(Expression<Func<T, bool>> predicate);
-        Task<int> CountAsync(Expression<Func<T, bool>> predicate = null);
+        Task<int> CountAsync(Expression<Func<T, bool>>? predicate = null);
+        Task<bool> AnyAsync(Expression<Func<T, bool>> predicate, CancellationToken cancellationToken = default);
     }
 }

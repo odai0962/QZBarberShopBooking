@@ -3,20 +3,16 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Net.Http.Headers;
 using QZBarberShopBooking.Application.Helpers;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using System.Security.Claims;
 
 namespace QZBarberShopBooking.API.Middleware
 {
     public class AuthorizeMiddleware : Attribute, IAuthorizationFilter
     {
-        private readonly IConfiguration _config;
-        //private readonly ILoggerService _loggerService;
-
-        public AuthorizeMiddleware(IConfiguration configuration
-            )
-        {
-            _config = configuration;
-        }
+        // Allow parameterless attribute usage. Resolve IConfiguration via RequestServices at runtime.
+        public AuthorizeMiddleware() { }
 
         public void OnAuthorization(AuthorizationFilterContext context)
         {
@@ -38,7 +34,13 @@ namespace QZBarberShopBooking.API.Middleware
 
                     throw new ArgumentNullException("Authorization Is Not Passed In Header");
                 }
-                var secretKey = _config.GetValue<string>("JWTSecretKey");
+                var config = context.HttpContext.RequestServices.GetRequiredService<IConfiguration>();
+                var secretKey = config.GetValue<string>("JwtSettings:SecretKey");
+                if (string.IsNullOrWhiteSpace(secretKey))
+                {
+                    context.Result = new UnauthorizedResult();
+                    return;
+                }
                 var claims = JWTHelper.ValidateTokenWithLifeTime(token, secretKey);
                 if (claims.Any())
                 {

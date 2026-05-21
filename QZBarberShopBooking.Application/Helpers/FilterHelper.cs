@@ -1,4 +1,4 @@
-﻿using AutoMapper.Internal;
+﻿using System.Reflection;
 using QZBarberShopBooking.Application.DTO.Shared;
 using QZBarberShopBooking.Application.Enums;
 using System;
@@ -15,7 +15,7 @@ namespace QZBarberShopBooking.Application.Helpers
         {
             if (property is MemberExpression memberExpr)
             {
-                var propertyType = memberExpr.Member.GetMemberType();
+                var propertyType = GetMemberType(memberExpr.Member);
 
                 if (propertyType == typeof(string))
                 {
@@ -28,7 +28,7 @@ namespace QZBarberShopBooking.Application.Helpers
         {
             if (property is MemberExpression memberExpr)
             {
-                var propertyType = memberExpr.Member.GetMemberType();
+                var propertyType = GetMemberType(memberExpr.Member);
 
                 if (propertyType == typeof(Boolean))
                 {
@@ -41,7 +41,7 @@ namespace QZBarberShopBooking.Application.Helpers
         {
             if (property is MemberExpression memberExpr)
             {
-                var propertyType = memberExpr.Member.GetMemberType();
+                var propertyType = GetMemberType(memberExpr.Member);
 
                 if (propertyType == typeof(int) || propertyType == typeof(int?))
                 {
@@ -86,7 +86,7 @@ namespace QZBarberShopBooking.Application.Helpers
         {
             if (property is MemberExpression memberExpr)
             {
-                var propertyType = memberExpr.Member.GetMemberType();
+                var propertyType = GetMemberType(memberExpr.Member);
 
                 if (propertyType == typeof(DateTime) || propertyType == typeof(DateTime?))
                 {
@@ -239,6 +239,16 @@ namespace QZBarberShopBooking.Application.Helpers
                 property = Expression.PropertyOrField(property, prop);
             }
             return property;
+        }
+
+        private static Type GetMemberType(MemberInfo member)
+        {
+            return member switch
+            {
+                PropertyInfo p => p.PropertyType,
+                FieldInfo f => f.FieldType,
+                _ => typeof(object)
+            };
         }
     }
 }

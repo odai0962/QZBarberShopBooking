@@ -1,5 +1,5 @@
-﻿using QZBarberShopBooking.Infrastructure.Data;
-using QZBarberShopBooking.Infrastructure.Interface;
+﻿using QZBarberShopBooking.Application.Interfaces;
+using QZBarberShopBooking.Infrastructure.Data;
 using System;
 using System.Collections.Generic;
 using System.Text;

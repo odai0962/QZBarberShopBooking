@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace QZBarberShopBooking.Infrastructure.Interface
+namespace QZBarberShopBooking.Application.Interfaces
 {
     public interface IUnitOfWork : IDisposable
     {
