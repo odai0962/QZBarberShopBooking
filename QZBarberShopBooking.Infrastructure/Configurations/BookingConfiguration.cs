@@ -23,6 +23,9 @@ namespace QZBarberShopBooking.Infrastructure.Configurations
             builder.HasIndex(b => new { b.CustomerId, b.BookingDate })
                 .HasDatabaseName("IX_Booking_CustomerDate");
 
+            builder.HasIndex(b => new { b.StartTimeUtc, b.EndTimeUtc })
+                .HasDatabaseName("IX_Booking_TimeRange");
+
             builder.HasOne(b => b.Customer)
                 .WithMany(c => c.Bookings)
                 .HasForeignKey(b => b.CustomerId)
@@ -32,7 +35,7 @@ namespace QZBarberShopBooking.Infrastructure.Configurations
                 .WithMany(e => e.Bookings)
                 .HasForeignKey(b => b.EmployeeId)
                 .OnDelete(DeleteBehavior.Restrict)
-                .IsRequired(false);
+                .IsRequired();
 
             builder.HasMany(b => b.Services)
                 .WithOne(bs => bs.Booking)
@@ -41,6 +44,14 @@ namespace QZBarberShopBooking.Infrastructure.Configurations
 
             builder.Property(b => b.BookingNumber)
                 .HasMaxLength(20)
+                .IsRequired();
+
+            builder.Property(b => b.StartTimeUtc)
+                .HasColumnType("datetime2")
+                .IsRequired();
+
+            builder.Property(b => b.EndTimeUtc)
+                .HasColumnType("datetime2")
                 .IsRequired();
 
             builder.Property(b => b.Status)

@@ -12,6 +12,9 @@ namespace QZBarberShopBooking.Application.DTO.Bookings
         public int Id { get; set; }
         public string BookingNumber { get; set; }
         public DateTime BookingDate { get; set; }
+        // Summary times (UTC)
+        public DateTime StartTimeUtc { get; set; }
+        public DateTime EndTimeUtc { get; set; }
         public BookingStatus Status { get; set; }
         public string? Notes { get; set; }
         public decimal SubTotal { get; set; }
@@ -21,7 +24,7 @@ namespace QZBarberShopBooking.Application.DTO.Bookings
         public DateTime CreatedAt { get; set; }
 
         public CustomerDto Customer { get; set; }
-        public EmployeeDto? Employee { get; set; }
+        public EmployeeDto Employee { get; set; }
         public List<BookingServiceDto> Services { get; set; } = new();
     }
 }

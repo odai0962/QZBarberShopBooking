@@ -33,59 +33,57 @@ namespace QZBarberShopBooking.Application.Helpers
                 SigningCredentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256Signature),
                 Issuer = "VMS_API",
                 Audience = "VMS_WEB",
-                IssuedAt = DateTime.Now,
+                IssuedAt = DateTime.UtcNow,
                 TokenType = "JWT",
             };
             var token = tokenHandler.CreateToken(tokenDescriptor);
             return tokenHandler.WriteToken(token);
         }
 
-        public static IEnumerable<Claim> ValidateTokenWithLifeTime(string token, string secretKey)
+        public static ClaimsPrincipal ValidateTokenWithLifeTime(string token, string secretKey, string? validIssuer = null, string? validAudience = null, TimeSpan? clockSkew = null)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
             if (string.IsNullOrWhiteSpace(secretKey) || secretKey.Length < 24)
             {
                 throw new ArgumentException("JWT secret key not available.");
             }
-            var key = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(secretKey));
-            tokenHandler.ValidateToken(token, new TokenValidationParameters
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
+            var principal = tokenHandler.ValidateToken(token, new TokenValidationParameters
             {
                 ValidateIssuerSigningKey = true,
                 IssuerSigningKey = key,
-                ValidateIssuer = true,
-                ValidIssuer = "VMS_API",
-                ValidateAudience = true,
-                ValidAudience = "VMS_WEB",
+                ValidateIssuer = validIssuer != null,
+                ValidIssuer = validIssuer,
+                ValidateAudience = validAudience != null,
+                ValidAudience = validAudience,
                 ValidateLifetime = true,
-                ClockSkew = TimeSpan.Zero
+                ClockSkew = clockSkew ?? TimeSpan.Zero
             }, out SecurityToken validatedToken);
 
-            var jwtToken = (JwtSecurityToken)validatedToken;
-            return jwtToken.Claims;
+            return principal;
         }
 
-        public static IEnumerable<Claim> ValidateTokenWithoutLifeTIme(string token, string secretKey)
+        public static ClaimsPrincipal ValidateTokenWithoutLifetime(string token, string secretKey, string? validIssuer = null, string? validAudience = null)
         {
             var tokenHandler = new JwtSecurityTokenHandler();
             if (string.IsNullOrWhiteSpace(secretKey) || secretKey.Length < 24)
             {
                 throw new ArgumentException("JWT secret key not available.");
             }
-            var key = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(secretKey));
-            tokenHandler.ValidateToken(token, new TokenValidationParameters
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
+            var principalResult = tokenHandler.ValidateToken(token, new TokenValidationParameters
             {
                 ValidateIssuerSigningKey = true,
                 IssuerSigningKey = key,
-                ValidateIssuer = true,
-                ValidIssuer = "VMSAPI",
-                ValidateAudience = true,
-                ValidAudience = "VMSWEB",
+                ValidateIssuer = validIssuer != null,
+                ValidIssuer = validIssuer,
+                ValidateAudience = validAudience != null,
+                ValidAudience = validAudience,
                 // For refresh token, no need to validate life time
                 ValidateLifetime = false,
             }, out SecurityToken validatedToken);
 
-            var jwtToken = (JwtSecurityToken)validatedToken;
-            return jwtToken.Claims;
+            return principalResult;
         }
 
         public static string GenerateRefreshToken()
@@ -111,7 +109,7 @@ namespace QZBarberShopBooking.Application.Helpers
             var principal = tokenHandler.ValidateToken(token, tokenValidationParameters, out SecurityToken securityToken);
             var jwtSecurityToken = securityToken as JwtSecurityToken;
 
-            if (jwtSecurityToken == null || !jwtSecurityToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256, StringComparison.InvariantCultureIgnoreCase))
+            if (jwtSecurityToken == null || !jwtSecurityToken.Header.Alg.Equals(SecurityAlgorithms.HmacSha256Signature, StringComparison.InvariantCultureIgnoreCase))
             {
                 throw new SecurityTokenException("Invalid token");
             }

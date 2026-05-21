@@ -36,18 +36,22 @@ namespace QZBarberShopBooking.API.Middleware
                 }
                 var config = context.HttpContext.RequestServices.GetRequiredService<IConfiguration>();
                 var secretKey = config.GetValue<string>("JwtSettings:SecretKey");
+                var issuer = config.GetValue<string>("JwtSettings:Issuer");
+                var audience = config.GetValue<string>("JwtSettings:Audience");
+                if (string.IsNullOrWhiteSpace(issuer)) issuer = null;
+                if (string.IsNullOrWhiteSpace(audience)) audience = null;
                 if (string.IsNullOrWhiteSpace(secretKey))
                 {
                     context.Result = new UnauthorizedResult();
                     return;
                 }
-                var claims = JWTHelper.ValidateTokenWithLifeTime(token, secretKey);
-                if (claims.Any())
+                ClaimsPrincipal principal;
+                try
                 {
-                    var user = new ClaimsPrincipal(new ClaimsIdentity(claims, "jwt"));
-                    context.HttpContext.User = user;
+                    principal = JWTHelper.ValidateTokenWithLifeTime(token, secretKey, issuer, audience);
+                    context.HttpContext.User = principal;
                 }
-                else
+                catch
                 {
                     context.Result = new UnauthorizedResult();
                 }

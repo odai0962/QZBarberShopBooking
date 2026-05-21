@@ -19,6 +19,9 @@ namespace QZBarberShopBooking.Infrastructure.Configurations
             builder.HasIndex(bs => bs.EmployeeId)
                 .HasDatabaseName("IX_BookingService_Employee");
 
+            builder.HasIndex(bs => new { bs.EmployeeId, bs.StartTimeUtc, bs.EndTimeUtc })
+                .HasDatabaseName("IX_BookingService_EmployeeInterval");
+
             builder.HasOne(bs => bs.Booking)
                 .WithMany(b => b.Services)
                 .HasForeignKey(bs => bs.BookingId)
@@ -36,6 +39,12 @@ namespace QZBarberShopBooking.Infrastructure.Configurations
 
             builder.Property(bs => bs.Price)
                 .HasPrecision(18, 2)
+                .IsRequired();
+
+            builder.Property(bs => bs.StartTimeUtc)
+                .IsRequired();
+
+            builder.Property(bs => bs.EndTimeUtc)
                 .IsRequired();
 
             builder.ToTable("BookingServices", schema: "booking");

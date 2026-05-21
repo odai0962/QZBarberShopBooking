@@ -12,7 +12,8 @@ namespace QZBarberShopBooking.Application.DTO.Bookings
         public string EmployeeName { get; set; }
         public decimal Price { get; set; }
         public TimeSpan Duration { get; set; }
-        public DateTime StartTime { get; set; }
-        public DateTime EndTime { get; set; }
+        // Stored/returned in UTC
+        public DateTime StartTimeUtc { get; set; }
+        public DateTime EndTimeUtc { get; set; }
     }
 }
