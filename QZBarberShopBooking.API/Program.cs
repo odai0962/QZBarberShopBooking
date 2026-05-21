@@ -12,7 +12,6 @@ using QZBarberShopBooking.Application.Helpers;  // ✅ إضافة هذا الـ 
 using QZBarberShopBooking.Application.Interfaces;
 using QZBarberShopBooking.Infrastructure.Authentication;
 using QZBarberShopBooking.Infrastructure.Data;
-using QZBarberShopBooking.Infrastructure.Interface;
 using QZBarberShopBooking.Infrastructure.Repositories;
 using QZBarberShopBooking.Service.DI;
 using QZBarberShopBooking.Service.Service.Auth;

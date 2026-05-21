@@ -1,6 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using QZBarberShopBooking.Application.Interfaces;
 using QZBarberShopBooking.Infrastructure.Data;
-using QZBarberShopBooking.Infrastructure.Interface;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -130,6 +130,9 @@ namespace QZBarberShopBooking.Infrastructure.Repositories
         #region Utility Operations
         public virtual async Task<bool> AnyAsync(Expression<Func<T, bool>> predicate)
             => await _dbSet.AnyAsync(predicate);
+
+        public virtual async Task<bool> AnyAsync(Expression<Func<T, bool>> predicate, CancellationToken cancellationToken = default)
+            => await _dbSet.AnyAsync(predicate, cancellationToken);
 
         public virtual async Task<int> CountAsync(Expression<Func<T, bool>> predicate = null)
             => predicate == null ? await _dbSet.CountAsync() : await _dbSet.CountAsync(predicate);

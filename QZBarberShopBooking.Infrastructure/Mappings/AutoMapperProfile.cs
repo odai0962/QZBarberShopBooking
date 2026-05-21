@@ -10,8 +10,9 @@ using QZBarberShopBooking.Domain.Entities;
 using System;
 using System.Collections.Generic;
 using System.Text;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
-namespace QZBarberShopBooking.Application.Mappings
+namespace QZBarberShopBooking.Infrastructure.Mappings
 {
     public class AutoMapperProfile : Profile
     {

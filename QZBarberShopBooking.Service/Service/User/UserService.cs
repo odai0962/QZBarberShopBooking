@@ -7,7 +7,6 @@ using QZBarberShopBooking.Application.Extensions;
 using QZBarberShopBooking.Application.Helpers;
 using QZBarberShopBooking.Application.Interfaces;
 using QZBarberShopBooking.Domain.Entities;
-using QZBarberShopBooking.Infrastructure.Interface;
 using QZBarberShopBooking.Service.DI.DIType;
 using QZBarberShopBooking.Service.Service;
 
@@ -102,7 +101,7 @@ namespace QZBarberShopBooking.Service.Service.User
 
             var userDtos = _mapper.Map<IEnumerable<UserDto>>(users);
 
-            return PaginatedResponse<UserDto>.Create( userDtos, request.PageNumber,request.PageSize, totalCount);
+            return PaginatedResponse<UserDto>.Create(userDtos, request.PageNumber, request.PageSize, totalCount);
         }
 
         public async Task<UserDto> CreateAsync(CreateUserDto createUserDto, CancellationToken cancellationToken = default)

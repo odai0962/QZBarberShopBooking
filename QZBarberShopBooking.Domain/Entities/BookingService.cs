@@ -1,11 +1,11 @@
-﻿using QZBarberShopBooking.Application.Models.Interfaces;
+﻿using QZBarberShopBooking.Domain.Common;
 using System;
 using System.Collections.Generic;
 using System.Text;
 
 namespace QZBarberShopBooking.Domain.Entities
 {
-    public class BookingService:TEntity, IAuditable, IDeletable
+    public class BookingService : TEntity, IAuditable, IDeletable
     {
         public int ServiceId { get; set; }
         public Service Service { get; set; }
@@ -23,6 +23,6 @@ namespace QZBarberShopBooking.Domain.Entities
         public TimeSlot TimeSlot { get; set; }
         public int BookingId { get; set; }
         public Booking Booking { get; set; }
-   
+
     }
 }
