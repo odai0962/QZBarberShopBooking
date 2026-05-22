@@ -21,7 +21,7 @@ namespace QZBarberShopBooking.Service.Service.Auth
         private readonly IRepository<QZBarberShopBooking.Domain.Entities.User> _userRepository;
         private readonly IRepository<UserRole> _roleRepository;
         private readonly IRepository<Customer> _customerRepository;
-        private readonly IRepository<Employee> _employeeRepository;
+        private readonly IRepository<Domain.Entities.Employee> _employeeRepository;
         private readonly PasswordService _passwordService;
         private readonly IConfiguration _configuration;
         private readonly IMapper _mapper;
@@ -31,7 +31,7 @@ namespace QZBarberShopBooking.Service.Service.Auth
             IRepository<QZBarberShopBooking.Domain.Entities.User> userRepository,
             IRepository<UserRole> roleRepository,
             IRepository<Customer> customerRepository,
-            IRepository<Employee> employeeRepository,
+            IRepository<Domain.Entities.Employee> employeeRepository,
             PasswordService passwordService,
             IConfiguration configuration,
             IMapper mapper,
@@ -95,7 +95,15 @@ namespace QZBarberShopBooking.Service.Service.Auth
 
         public async Task<AuthResponseDto> RefreshTokenAsync(RefreshTokenDto refreshTokenDto, CancellationToken cancellationToken = default)
         {
-            var principal = JWTHelper.GetPrincipalFromExpiredToken(refreshTokenDto.AccessToken, _configuration["JwtSettings:SecretKey"]);
+            var jwtSettings = _configuration.GetSection("JwtSettings");
+            var secretKey = jwtSettings["SecretKey"]
+                ?? throw new InvalidOperationException("JWT Secret Key is not configured");
+
+            var principal = JWTHelper.GetPrincipalFromExpiredToken(
+                refreshTokenDto.AccessToken,
+                secretKey,
+                jwtSettings["Issuer"],
+                jwtSettings["Audience"]);
 
             var userIdClaim = principal.FindFirst("userId")?.Value;
             if (!int.TryParse(userIdClaim, out int userId))
@@ -103,9 +111,9 @@ namespace QZBarberShopBooking.Service.Service.Auth
 
             var user = await _userRepository.GetAll()
                 .Include(u => u.Role)
-                .FirstOrDefaultAsync(u => u.Id == userId && u.RefreshToken == refreshTokenDto.RefreshToken, cancellationToken);
+                .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
 
-            if (user == null)
+            if (user == null || !RefreshTokensMatch(user.RefreshToken, refreshTokenDto.RefreshToken))
                 throw new UnauthorizedException("Invalid refresh token");
 
             if (!user.RefreshTokenExpiryTime.HasValue || user.RefreshTokenExpiryTime <= DateTime.UtcNow)
@@ -155,7 +163,7 @@ namespace QZBarberShopBooking.Service.Service.Auth
         new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
     };
 
-            if (user is Employee employee)
+            if (user is Domain.Entities.Employee employee)
             {
                 claims.Add(new("userType", "Employee"));
                 claims.Add(new("isAvailable", (employee.IsAvailableForBooking ?? true).ToString()));
@@ -220,8 +228,10 @@ namespace QZBarberShopBooking.Service.Service.Auth
 
         private async Task SetRefreshTokenAsync(QZBarberShopBooking.Domain.Entities.User user, AuthResponseDto tokens, CancellationToken cancellationToken)
         {
-            user.RefreshToken = tokens.RefreshToken;
-            var days = int.TryParse(_configuration["JwtSettings:RefreshTokenDays"], out var d) ? d : 7;
+            user.RefreshToken = HashTokenSha256(tokens.RefreshToken);
+            var days = int.TryParse(_configuration["JwtSettings:RefreshTokenExpireDays"], out var d)
+                ? d
+                : int.TryParse(_configuration["JwtSettings:RefreshTokenDays"], out var legacy) ? legacy : 7;
             user.RefreshTokenExpiryTime = DateTime.UtcNow.AddDays(days);
 
             switch (user)
@@ -229,7 +239,7 @@ namespace QZBarberShopBooking.Service.Service.Auth
                 case Customer customer:
                     await _customerRepository.UpdateAsync(customer, cancellationToken);
                     break;
-                case Employee employee:
+                case Domain.Entities.Employee employee:
                     await _employeeRepository.UpdateAsync(employee, cancellationToken);
                     break;
                 default:
@@ -240,8 +250,7 @@ namespace QZBarberShopBooking.Service.Service.Auth
             await _unitOfWork.SaveChangesAsync(cancellationToken);
         }
 
-        // Register an employee account
-        public async Task<AuthResponseDto> RegisterEmployeeAsync(RegisterDto registerDto, CancellationToken cancellationToken = default)
+        public async Task<AuthResponseDto> RegisterEmployeeAsync(RegisterEmployeeDto registerDto, CancellationToken cancellationToken = default)
         {
             // Prefer normalized columns if available (NormalizedEmail / NormalizedUserName)
             var normalizedEmail = registerDto.Email.ToUpperInvariant();
@@ -290,7 +299,7 @@ namespace QZBarberShopBooking.Service.Service.Auth
                 .FirstOrDefaultAsync(r => r.Name == "Employee", cancellationToken)
                 ?? throw new NotFoundException("Role", "Employee");
 
-            var employee = _mapper.Map<Employee>(registerDto);
+            var employee = _mapper.Map<Domain.Entities.Employee>(registerDto);
             employee.PasswordHash = _passwordService.HashPassword(registerDto.Password);
             employee.RoleId = role.Id;
             employee.IsActive = true;
@@ -322,9 +331,9 @@ namespace QZBarberShopBooking.Service.Service.Auth
 
         public async Task<bool> ResetPasswordAsync(string email, CancellationToken cancellationToken = default)
         {
-            var user = await _userRepository.GetAll()
-                .FirstOrDefaultAsync(u => u.Email.ToLowerInvariant() == email.ToLowerInvariant(), cancellationToken)
-                ?? throw new NotFoundException("User", email);
+            var user = await _userRepository.GetAll().FirstOrDefaultAsync(u => u.Email.ToLowerInvariant() == email.ToLowerInvariant(), cancellationToken);
+            if (user is null)
+                return true;
 
             var token = GenerateResetToken();
             var hashed = HashTokenSha256(token);
@@ -337,6 +346,17 @@ namespace QZBarberShopBooking.Service.Service.Auth
 
             // TODO: send raw token to user's email via Email service
             return true;
+        }
+
+        private static bool RefreshTokensMatch(string? storedToken, string providedToken)
+        {
+            if (string.IsNullOrWhiteSpace(storedToken))
+                return false;
+
+            if (storedToken == providedToken)
+                return true;
+
+            return HashTokenSha256(providedToken) == storedToken;
         }
 
         public async Task<bool> VerifyResetTokenAsync(string email, string token, string newPassword, CancellationToken cancellationToken = default)

@@ -57,7 +57,7 @@ namespace QZBarberShopBooking.API.Controllers.Auth
 
         [HttpPost("register-employee")]
         [Authorize(Roles = "Admin")]
-        public async Task<ActionResult<ApiResponse<AuthResponseDto>>> RegisterEmployee([FromBody] RegisterDto registerDto)
+        public async Task<ActionResult<ApiResponse<AuthResponseDto>>> RegisterEmployee([FromBody] RegisterEmployeeDto registerDto)
         {
             try
             {

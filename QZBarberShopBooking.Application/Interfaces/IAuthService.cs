@@ -8,7 +8,7 @@ namespace QZBarberShopBooking.Application.Interfaces
     {
         Task<AuthResponseDto> LoginAsync(LoginDto loginDto, CancellationToken cancellationToken = default);
         Task<AuthResponseDto> RegisterAsync(RegisterDto registerDto, CancellationToken cancellationToken = default);
-        Task<AuthResponseDto> RegisterEmployeeAsync(RegisterDto registerDto, CancellationToken cancellationToken = default);
+        Task<AuthResponseDto> RegisterEmployeeAsync(RegisterEmployeeDto registerDto, CancellationToken cancellationToken = default);
         Task<AuthResponseDto> RefreshTokenAsync(RefreshTokenDto refreshTokenDto, CancellationToken cancellationToken = default);
         Task<bool> LogoutAsync(int userId, CancellationToken cancellationToken = default);
         Task<bool> ChangePasswordAsync(int userId, string oldPassword, string newPassword, CancellationToken cancellationToken = default);

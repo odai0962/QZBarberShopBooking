@@ -1,6 +1,6 @@
 ﻿using QZBarberShopBooking.Application.DTO.Customers;
 using QZBarberShopBooking.Application.DTO.Employees;
-using QZBarberShopBooking.Application.Enums;
+using QZBarberShopBooking.Domain.Enums;
 using System;
 using System.Collections.Generic;
 using System.Text;

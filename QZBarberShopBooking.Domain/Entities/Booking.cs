@@ -1,9 +1,5 @@
-﻿using QZBarberShopBooking.Application.Enums;
-using QZBarberShopBooking.Domain.Common;
+﻿using QZBarberShopBooking.Domain.Common;
 using QZBarberShopBooking.Domain.Enums;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace QZBarberShopBooking.Domain.Entities
 {

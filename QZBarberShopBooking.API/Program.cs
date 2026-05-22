@@ -1,6 +1,7 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using QZBarberShopBooking.API.Extensions;
+using QZBarberShopBooking.API.Filters;
 using QZBarberShopBooking.API.Middleware;
 using QZBarberShopBooking.Infrastructure.Authentication;
 using QZBarberShopBooking.Infrastructure.Data;
@@ -32,6 +33,7 @@ builder.Services.AddControllers()
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ValidationFilter>();
 
 // Swagger
 builder.Services.AddSwaggerGen(options =>

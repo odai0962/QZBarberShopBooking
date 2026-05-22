@@ -7,11 +7,6 @@ using QZBarberShopBooking.Application.DTO.Services;
 using QZBarberShopBooking.Application.DTO.Users;
 using QZBarberShopBooking.Application.Interfaces;
 using QZBarberShopBooking.Domain.Entities;
-using System;
-using System.Collections.Generic;
-using System.Text;
-using static System.Runtime.InteropServices.JavaScript.JSType;
-
 namespace QZBarberShopBooking.Infrastructure.Mappings
 {
     public class AutoMapperProfile : Profile
@@ -35,6 +30,13 @@ namespace QZBarberShopBooking.Infrastructure.Mappings
                 .ForMember(dest => dest.HireDate, opt => opt.MapFrom(src => src.HireDate ?? DateTime.UtcNow))
                 .ForMember(dest => dest.IsAvailableForBooking, opt => opt.MapFrom(src => true));
 
+            CreateMap<CreateEmployeeDto, Employee>()
+                .IncludeBase<RegisterEmployeeDto, Employee>();
+
+            CreateMap<CreateServiceDto, Service>();
+
+            CreateMap<CreateTimeOffDto, EmployeeTimeOff>();
+
             // User Mappings
             CreateMap<User, UserDto>()
                 .ForMember(dest => dest.Role, opt => opt.MapFrom(src => src.Role.Name));
@@ -49,9 +51,10 @@ namespace QZBarberShopBooking.Infrastructure.Mappings
             // Employee Mappings
             CreateMap<Employee, EmployeeDto>()
                 .IncludeBase<User, UserDto>()
+                .ForMember(dest => dest.IsAvailableForBooking, opt => opt.MapFrom(src => src.IsAvailableForBooking ?? false))
                 .ForMember(dest => dest.Rating, opt => opt.MapFrom(src => CalculateRating(src)))
                 .ForMember(dest => dest.TotalBookings, opt => opt.MapFrom(src => src.Bookings.Count))
-                .ForMember(dest => dest.Services, opt => opt.MapFrom(src => src.Services.Select(es => es.Service)));
+                .ForMember(dest => dest.Services, opt => opt.MapFrom(src => src.Services.Where(es => es.IsAvailable).Select(es => es.Service)));
 
             CreateMap<EmployeeSchedule, EmployeeScheduleDayDto>();
 
@@ -84,7 +87,20 @@ namespace QZBarberShopBooking.Infrastructure.Mappings
                 .ForMember(dest => dest.EmployeeName,
                     opt => opt.MapFrom(src => $"{src.Employee.FirstName} {src.Employee.LastName}"));
 
+            CreateMap<CreateUserDto, Customer>()
+                .ForMember(dest => dest.PasswordHash, opt => opt.Ignore())
+                .ForMember(dest => dest.Username, opt => opt.MapFrom(src => src.Username.ToLower()))
+                .ForMember(dest => dest.TotalVisits, opt => opt.MapFrom(_ => 0));
+
+            CreateMap<CreateUserDto, Employee>()
+                .ForMember(dest => dest.PasswordHash, opt => opt.Ignore())
+                .ForMember(dest => dest.Username, opt => opt.MapFrom(src => src.Username.ToLower()))
+                .ForMember(dest => dest.IsAvailableForBooking, opt => opt.MapFrom(_ => true));
+
             CreateMap<UpdateUserDto, User>()
+                .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
+
+            CreateMap<UpdateProfileDto, User>()
                 .ForAllMembers(opts => opts.Condition((src, dest, srcMember) => srcMember != null));
 
             CreateMap<UpdateCustomerDto, Customer>()

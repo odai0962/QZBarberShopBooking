@@ -1,0 +1,138 @@
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using QZBarberShopBooking.API.Controllers.Base;
+using QZBarberShopBooking.Application.DTO.Bookings;
+using QZBarberShopBooking.Application.DTO.Shared;
+using QZBarberShopBooking.Application.Helpers;
+using QZBarberShopBooking.Application.Interfaces;
+
+namespace QZBarberShopBooking.API.Controllers.Bookings;
+
+[Route("api/[controller]")]
+[ApiController]
+public class BookingsController : BaseApiController
+{
+    private readonly IBookingService _bookingService;
+
+    public BookingsController(IBookingService bookingService)
+    {
+        _bookingService = bookingService;
+    }
+
+    [HttpGet("availability")]
+    [AllowAnonymous]
+    public async Task<ActionResult<ApiResponse<IEnumerable<TimeSlotDto>>>> GetAvailability(
+        [FromQuery] int employeeId,
+        [FromQuery] DateTime date,
+        [FromQuery] int durationMinutes)
+    {
+        var slots = await _bookingService.GetAvailableTimeSlotsAsync(employeeId, date, durationMinutes);
+        return Ok(ApiResponse<IEnumerable<TimeSlotDto>>.Success(slots, "Available slots retrieved"));
+    }
+
+    [HttpPost]
+    [Authorize(Roles = "Customer,Admin")]
+    public async Task<ActionResult<ApiResponse<BookingDto>>> Create([FromBody] CreateBookingDto dto)
+    {
+        var customerId = UserContext.GetUserIdOrThrow();
+        var booking = await _bookingService.CreateAsync(dto, customerId);
+        return CreatedAtAction(nameof(GetById), new { id = booking.Id },
+            ApiResponse<BookingDto>.Success(booking, "Booking created successfully"));
+    }
+
+    [HttpGet("my")]
+    [Authorize(Roles = "Customer,Admin")]
+    public async Task<ActionResult<ApiResponse<IEnumerable<BookingDto>>>> GetMyBookings()
+    {
+        var customerId = UserContext.GetUserIdOrThrow();
+        var bookings = await _bookingService.GetCustomerBookingsAsync(customerId);
+        return Ok(ApiResponse<IEnumerable<BookingDto>>.Success(bookings, "Bookings retrieved"));
+    }
+
+    [HttpGet("employee/my")]
+    [Authorize(Roles = "Employee,Admin")]
+    public async Task<ActionResult<ApiResponse<IEnumerable<BookingDto>>>> GetEmployeeBookings([FromQuery] DateTime? date)
+    {
+        var employeeId = UserContext.GetUserIdOrThrow();
+        var bookings = await _bookingService.GetEmployeeBookingsAsync(employeeId, date);
+        return Ok(ApiResponse<IEnumerable<BookingDto>>.Success(bookings, "Bookings retrieved"));
+    }
+
+    [HttpGet("employee/notifications")]
+    [Authorize(Roles = "Employee,Admin")]
+    public async Task<ActionResult<ApiResponse<IEnumerable<BookingDto>>>> GetEmployeeNotifications()
+    {
+        var employeeId = UserContext.GetUserIdOrThrow();
+        var bookings = await _bookingService.GetEmployeeNotificationsAsync(employeeId);
+        return Ok(ApiResponse<IEnumerable<BookingDto>>.Success(bookings, "Notifications retrieved"));
+    }
+
+    [HttpGet("{id:int}")]
+    [Authorize]
+    public async Task<ActionResult<ApiResponse<BookingDto>>> GetById(int id)
+    {
+        var booking = await _bookingService.GetByIdAsync(id);
+        return Ok(ApiResponse<BookingDto>.Success(booking, "Booking retrieved"));
+    }
+
+    [HttpGet]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult<ApiResponse<IEnumerable<BookingDto>>>> GetAll()
+    {
+        var bookings = await _bookingService.GetAllAsync();
+        return Ok(ApiResponse<IEnumerable<BookingDto>>.Success(bookings, "Bookings retrieved"));
+    }
+
+    [HttpGet("paged")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult<ApiResponse<PaginatedResponse<BookingDto>>>> GetPaged([FromQuery] PagedRequest request)
+    {
+        var result = await _bookingService.GetPagedAsync(request);
+        return Ok(ApiResponse<PaginatedResponse<BookingDto>>.Success(result, "Bookings retrieved"));
+    }
+
+    [HttpPut("{id:int}")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult<ApiResponse<BookingDto>>> Update(int id, [FromBody] UpdateBookingDto dto)
+    {
+        var booking = await _bookingService.UpdateAsync(id, dto);
+        return Ok(ApiResponse<BookingDto>.Success(booking, "Booking updated"));
+    }
+
+    [HttpPost("{id:int}/cancel")]
+    [Authorize(Roles = "Customer,Employee,Admin")]
+    public async Task<ActionResult<ApiResponse>> Cancel(int id)
+    {
+        var userId = UserContext.GetUserIdOrThrow();
+        await _bookingService.CancelAsync(id, userId);
+        return Ok(ApiResponse.Success("Booking cancelled"));
+    }
+
+    [HttpPost("{id:int}/confirm")]
+    [Authorize(Roles = "Employee,Admin")]
+    public async Task<ActionResult<ApiResponse>> Confirm(int id)
+    {
+        var employeeId = UserContext.GetUserIdOrThrow();
+        await _bookingService.ConfirmAsync(id, employeeId);
+        return Ok(ApiResponse.Success("Booking confirmed"));
+    }
+
+    [HttpPost("{id:int}/complete")]
+    [Authorize(Roles = "Employee,Admin")]
+    public async Task<ActionResult<ApiResponse>> Complete(int id)
+    {
+        var employeeId = UserContext.GetUserIdOrThrow();
+        await _bookingService.CompleteAsync(id, employeeId);
+        return Ok(ApiResponse.Success("Booking completed"));
+    }
+
+    [HttpGet("stats")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult<ApiResponse<BookingStatsDto>>> GetStats(
+        [FromQuery] DateTime? startDate,
+        [FromQuery] DateTime? endDate)
+    {
+        var stats = await _bookingService.GetStatsAsync(startDate, endDate);
+        return Ok(ApiResponse<BookingStatsDto>.Success(stats, "Stats retrieved"));
+    }
+}

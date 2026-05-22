@@ -94,12 +94,17 @@ namespace QZBarberShopBooking.Application.Helpers
             return Convert.ToBase64String(randomNumber);
         }
 
-        public static ClaimsPrincipal GetPrincipalFromExpiredToken(string token, string secretKey)
+        public static ClaimsPrincipal GetPrincipalFromExpiredToken(string token,string secretKey,string? issuer = null, string? audience = null)
         {
+            if (string.IsNullOrWhiteSpace(secretKey) || secretKey.Length < 24)
+                throw new ArgumentException("JWT secret key not available.");
+
             var tokenValidationParameters = new TokenValidationParameters
             {
-                ValidateIssuer = false,
-                ValidateAudience = false,
+                ValidateIssuer = !string.IsNullOrWhiteSpace(issuer),
+                ValidIssuer = issuer,
+                ValidateAudience = !string.IsNullOrWhiteSpace(audience),
+                ValidAudience = audience,
                 ValidateLifetime = false,
                 ValidateIssuerSigningKey = true,
                 IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey))

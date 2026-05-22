@@ -28,6 +28,8 @@ public static class DatabaseExtensions
                 await dbContext.Database.EnsureCreatedAsync();
                 logger.LogInformation("Database ensured created (no migrations configured)");
             }
+
+            await DatabaseSeeder.SeedAsync(dbContext, logger);
         }
         catch (Exception ex)
         {

@@ -21,5 +21,6 @@ namespace QZBarberShopBooking.Application.Interfaces
         Task<IEnumerable<EmployeeTimeOffDto>> GetTimeOffsAsync(int employeeId);
         Task<EmployeeTimeOffDto> CreateTimeOffAsync(int employeeId, CreateTimeOffDto createTimeOffDto);
         Task<EmployeeStatsDto> GetStatsAsync(int employeeId, DateTime? startDate, DateTime? endDate);
+        Task AssignServicesAsync(int employeeId, AssignEmployeeServicesDto dto);
     }
 }
