@@ -4,6 +4,9 @@
 		<TargetFramework>net10.0</TargetFramework>
 		<Nullable>enable</Nullable>
 		<ImplicitUsings>enable</ImplicitUsings>
+		<GenerateDocumentationFile>true</GenerateDocumentationFile>
+		<NoWarn>$(NoWarn);1591</NoWarn>
+		<UserSecretsId>54390f90-e1df-43b1-a010-208e68444e4d</UserSecretsId>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -20,6 +23,10 @@
 
 		<PackageReference Include="Swashbuckle.AspNetCore" Version="7.0.0" />
 		<PackageReference Include="Swashbuckle.AspNetCore.Annotations" Version="7.0.0" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<Content Update="secrets.template.json" CopyToPublishDirectory="Never" />
 	</ItemGroup>
 
 	<ItemGroup>

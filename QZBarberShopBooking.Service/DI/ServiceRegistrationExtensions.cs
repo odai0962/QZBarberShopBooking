@@ -2,34 +2,47 @@
 using QZBarberShopBooking.Application.Interfaces;
 using QZBarberShopBooking.Infrastructure.Repositories;
 using QZBarberShopBooking.Service.DI.DIType;
-using System;
-using System.Collections.Generic;
+using QZBarberShopBooking.Service.Service.Auth;
 using System.Reflection;
-using System.Text;
 
-namespace QZBarberShopBooking.Service.DI
+namespace QZBarberShopBooking.Service.DI;
+
+public static class ServiceRegistrationExtensions
 {
-    public static class ServiceRegistrationExtensions
+    public static IServiceCollection AddServiceLayer(this IServiceCollection services)
     {
-        public static IServiceCollection AddScopedServicesFromAssembly(this IServiceCollection services, Assembly assembly)
+        services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+        services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+        var assembly = typeof(AuthService).Assembly;
+        var implementationTypes = assembly.GetTypes()
+            .Where(t => t is { IsClass: true, IsAbstract: false }
+                && typeof(IScopedService).IsAssignableFrom(t));
+
+        foreach (var implementationType in implementationTypes)
         {
-            services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
-            services.AddScoped<IUnitOfWork, UnitOfWork>();
-            var serviceTypes = assembly.GetTypes()
-                .Where(t => typeof(IScopedService).IsAssignableFrom(t) && !t.IsInterface && !t.IsAbstract);
+            var serviceInterfaces = implementationType.GetInterfaces()
+                .Where(i => i != typeof(IScopedService) && i.IsInterface)
+                .ToList();
 
-            foreach (var serviceType in serviceTypes)
+            if (serviceInterfaces.Count > 0)
             {
-                var interfaceType = serviceType.GetInterfaces()
-                    .FirstOrDefault(i => i == typeof(IScopedService));
-
-                if (interfaceType != null)
+                foreach (var serviceInterface in serviceInterfaces)
                 {
-                    services.AddScoped(serviceType);
+                    services.AddScoped(serviceInterface, implementationType);
                 }
             }
-
-            return services;
+            else
+            {
+                services.AddScoped(implementationType);
+            }
         }
+
+        return services;
     }
+
+    [Obsolete("Use AddServiceLayer instead.")]
+    public static IServiceCollection AddScopedServicesFromAssembly(
+        this IServiceCollection services,
+        Assembly assembly) => services.AddServiceLayer();
 }

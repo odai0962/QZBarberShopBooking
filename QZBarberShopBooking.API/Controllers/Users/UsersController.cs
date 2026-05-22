@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using QZBarberShopBooking.API.Controllers.Base;
-using QZBarberShopBooking.API.Middleware;
 using QZBarberShopBooking.Application.DTO.Shared;
 using QZBarberShopBooking.Application.DTO.Users;
 using QZBarberShopBooking.Application.Helpers;
@@ -12,7 +11,6 @@ namespace QZBarberShopBooking.API.Controllers.Users
 {
     [Route("api/[controller]")]
     [ApiController]
-    [AuthorizeMiddleware]
     [Authorize(Roles = "Admin")]
     public class UsersController : BaseApiController
     {
@@ -154,7 +152,7 @@ namespace QZBarberShopBooking.API.Controllers.Users
 
 
         [HttpPut("profile")]
-        [AllowAnonymous]
+        [Authorize]
         public async Task<ActionResult<ApiResponse<UserProfileDto>>> UpdateProfile([FromBody] UpdateProfileDto updateProfileDto)
         {
             try

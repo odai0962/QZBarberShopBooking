@@ -8,12 +8,18 @@ namespace QZBarberShopBooking.Infrastructure.Authentication
     {
         public static IServiceCollection AddJwtAuthentication(
             this IServiceCollection services,
-            IConfiguration configuration)
+            IConfiguration configuration,
+            bool isDevelopment = false)
         {
             var jwtSettings = configuration.GetSection("JwtSettings");
 
-            var secretKey = jwtSettings["SecretKey"]
-                ?? throw new InvalidOperationException("JWT Secret Key is not configured");
+            var secretKey = jwtSettings["SecretKey"];
+            if (string.IsNullOrWhiteSpace(secretKey))
+            {
+                throw new InvalidOperationException(
+                    "JWT Secret Key is not configured. For Development, run: dotnet user-secrets set \"JwtSettings:SecretKey\" \"<your-key>\" --project QZBarberShopBooking.API. " +
+                    "For Production, set environment variable JwtSettings__SecretKey.");
+            }
 
             var issuer = jwtSettings["Issuer"] ?? "QZBarberShop_API";
             var audience = jwtSettings["Audience"] ?? "QZBarberShop_Client";
@@ -26,7 +32,7 @@ namespace QZBarberShopBooking.Infrastructure.Authentication
             })
             .AddJwtBearer(options =>
             {
-                options.RequireHttpsMetadata = false; 
+                options.RequireHttpsMetadata = !isDevelopment;
                 options.SaveToken = true;
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
