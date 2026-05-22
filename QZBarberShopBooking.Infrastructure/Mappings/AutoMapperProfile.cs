@@ -1,4 +1,4 @@
-﻿using AutoMapper;
+using AutoMapper;
 using QZBarberShopBooking.Application.DTO.Auth;
 using QZBarberShopBooking.Application.DTO.Bookings;
 using QZBarberShopBooking.Application.DTO.Customers;
@@ -69,10 +69,6 @@ namespace QZBarberShopBooking.Infrastructure.Mappings
             CreateMap<BookingService, BookingServiceDto>()
                 .ForMember(dest => dest.ServiceName, opt => opt.MapFrom(src => src.Service.Name))
                 .ForMember(dest => dest.EmployeeName, opt => opt.MapFrom(src => $"{src.Employee.FirstName} {src.Employee.LastName}"));
-
-            CreateMap<TimeSlot, TimeSlotDto>()
-                .ForMember(dest => dest.EmployeeName,
-                    opt => opt.MapFrom(src => $"{src.Employee.FirstName} {src.Employee.LastName}"));
 
             // Service Mappings
             CreateMap<Service, ServiceDto>()
