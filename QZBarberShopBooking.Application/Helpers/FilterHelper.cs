@@ -1,6 +1,6 @@
 ﻿using System.Reflection;
 using QZBarberShopBooking.Application.DTO.Shared;
-using QZBarberShopBooking.Application.Enums;
+using QZBarberShopBooking.Domain.Enums;
 using System;
 using System.Collections.Generic;
 using System.Globalization;

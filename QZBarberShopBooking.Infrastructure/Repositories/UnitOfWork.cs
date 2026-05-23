@@ -1,29 +1,41 @@
-﻿using QZBarberShopBooking.Application.Interfaces;
+﻿using Microsoft.EntityFrameworkCore;
+using QZBarberShopBooking.Application.Interfaces;
 using QZBarberShopBooking.Infrastructure.Data;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
-namespace QZBarberShopBooking.Infrastructure.Repositories
+namespace QZBarberShopBooking.Infrastructure.Repositories;
+
+public class UnitOfWork : IUnitOfWork
 {
-    public class UnitOfWork : IUnitOfWork
+    private readonly BarberShopDbContext _context;
+
+    public UnitOfWork(BarberShopDbContext context)
     {
-        private readonly BarberShopDbContext _context;
-        private Dictionary<Type, object> _repositories;
+        _context = context;
+    }
 
-        public UnitOfWork(BarberShopDbContext context)
+    public Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
+        => _context.SaveChangesAsync(cancellationToken);
+
+    public int SaveChanges() => _context.SaveChanges();
+
+    public async Task ExecuteInTransactionAsync(Func<CancellationToken, Task> action, CancellationToken cancellationToken = default)
+    {
+        await using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+        try
         {
-            _context = context;
-            _repositories = new Dictionary<Type, object>();
+            await action(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
         }
-
-        public Task<int> SaveChangesAsync(CancellationToken cancellationToken) => _context.SaveChangesAsync(cancellationToken);
-        public int SaveChanges() => _context.SaveChanges();
-
-        public void Dispose()
+        catch
         {
-            _context?.Dispose();
-            GC.SuppressFinalize(this);
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
         }
+    }
+
+    public void Dispose()
+    {
+        _context.Dispose();
+        GC.SuppressFinalize(this);
     }
 }

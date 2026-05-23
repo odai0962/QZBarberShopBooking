@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace QZBarberShopBooking.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class projectStructure : Migration
+    public partial class InitialCreate : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -25,9 +25,6 @@ namespace QZBarberShopBooking.Infrastructure.Migrations
 
             migrationBuilder.EnsureSchema(
                 name: "identity");
-
-            migrationBuilder.EnsureSchema(
-                name: "schedule");
 
             migrationBuilder.CreateTable(
                 name: "Pages",
@@ -141,7 +138,9 @@ namespace QZBarberShopBooking.Infrastructure.Migrations
                     LastName = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     IsActive = table.Column<bool>(type: "bit", nullable: false, defaultValue: true),
                     RefreshToken = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    RefreshTokenExpiryTime = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    RefreshTokenExpiryTime = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    ResetPasswordToken = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    ResetPasswordTokenExpiry = table.Column<DateTime>(type: "datetime2", nullable: true),
                     IsDeleted = table.Column<bool>(type: "bit", nullable: false),
                     DeletedBy = table.Column<int>(type: "int", nullable: true),
                     DeletedDate = table.Column<DateTime>(type: "datetime2", nullable: true),
@@ -181,6 +180,8 @@ namespace QZBarberShopBooking.Infrastructure.Migrations
                         .Annotation("SqlServer:Identity", "1, 1"),
                     BookingNumber = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
                     BookingDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    StartTimeUtc = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    EndTimeUtc = table.Column<DateTime>(type: "datetime2", nullable: false),
                     Status = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
                     Notes = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
                     SubTotal = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
@@ -195,7 +196,7 @@ namespace QZBarberShopBooking.Infrastructure.Migrations
                     CreationDate = table.Column<DateTime>(type: "datetime2", nullable: false),
                     ModificationDate = table.Column<DateTime>(type: "datetime2", nullable: true),
                     CustomerId = table.Column<int>(type: "int", nullable: false),
-                    EmployeeId = table.Column<int>(type: "int", nullable: true)
+                    EmployeeId = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -313,6 +314,8 @@ namespace QZBarberShopBooking.Infrastructure.Migrations
                     ServiceId = table.Column<int>(type: "int", nullable: false),
                     EmployeeId = table.Column<int>(type: "int", nullable: false),
                     Price = table.Column<decimal>(type: "decimal(18,2)", precision: 18, scale: 2, nullable: false),
+                    StartTimeUtc = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    EndTimeUtc = table.Column<DateTime>(type: "datetime2", nullable: false),
                     IsDeleted = table.Column<bool>(type: "bit", nullable: false),
                     DeletedBy = table.Column<int>(type: "int", nullable: true),
                     DeletedDate = table.Column<DateTime>(type: "datetime2", nullable: true),
@@ -320,7 +323,6 @@ namespace QZBarberShopBooking.Infrastructure.Migrations
                     ModifiedBy = table.Column<int>(type: "int", nullable: true),
                     CreationDate = table.Column<DateTime>(type: "datetime2", nullable: false),
                     ModificationDate = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    TimeSlotId = table.Column<int>(type: "int", nullable: false),
                     BookingId = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
@@ -349,38 +351,6 @@ namespace QZBarberShopBooking.Infrastructure.Migrations
                         onDelete: ReferentialAction.Restrict);
                 });
 
-            migrationBuilder.CreateTable(
-                name: "TimeSlots",
-                schema: "schedule",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    StartTime = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    EndTime = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    BookingServiceId = table.Column<int>(type: "int", nullable: true),
-                    EmployeeId = table.Column<int>(type: "int", nullable: false)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_TimeSlots", x => x.Id);
-                    table.CheckConstraint("CK_TimeSlot_Time", "[EndTime] > [StartTime] AND DATEDIFF(minute, [StartTime], [EndTime]) <= 240");
-                    table.ForeignKey(
-                        name: "FK_TimeSlots_BookingServices_BookingServiceId",
-                        column: x => x.BookingServiceId,
-                        principalSchema: "booking",
-                        principalTable: "BookingServices",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.SetNull);
-                    table.ForeignKey(
-                        name: "FK_TimeSlots_Users_EmployeeId",
-                        column: x => x.EmployeeId,
-                        principalSchema: "identity",
-                        principalTable: "Users",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
             migrationBuilder.CreateIndex(
                 name: "IX_Booking_BookingNumber",
                 schema: "booking",
@@ -401,6 +371,12 @@ namespace QZBarberShopBooking.Infrastructure.Migrations
                 columns: new[] { "BookingDate", "Status" });
 
             migrationBuilder.CreateIndex(
+                name: "IX_Booking_TimeRange",
+                schema: "booking",
+                table: "Bookings",
+                columns: new[] { "StartTimeUtc", "EndTimeUtc" });
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Bookings_EmployeeId",
                 schema: "booking",
                 table: "Bookings",
@@ -419,11 +395,10 @@ namespace QZBarberShopBooking.Infrastructure.Migrations
                 column: "EmployeeId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_BookingService_TimeSlot",
+                name: "IX_BookingService_EmployeeInterval",
                 schema: "booking",
                 table: "BookingServices",
-                column: "TimeSlotId",
-                unique: true);
+                columns: new[] { "EmployeeId", "StartTimeUtc", "EndTimeUtc" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_BookingServices_ServiceId",
@@ -514,33 +489,6 @@ namespace QZBarberShopBooking.Infrastructure.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_TimeSlot_EmployeeStartTime",
-                schema: "schedule",
-                table: "TimeSlots",
-                columns: new[] { "EmployeeId", "StartTime" },
-                unique: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_TimeSlot_StartTime",
-                schema: "schedule",
-                table: "TimeSlots",
-                column: "StartTime");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_TimeSlot_TimeRange",
-                schema: "schedule",
-                table: "TimeSlots",
-                columns: new[] { "StartTime", "EndTime" });
-
-            migrationBuilder.CreateIndex(
-                name: "IX_TimeSlots_BookingServiceId",
-                schema: "schedule",
-                table: "TimeSlots",
-                column: "BookingServiceId",
-                unique: true,
-                filter: "[BookingServiceId] IS NOT NULL");
-
-            migrationBuilder.CreateIndex(
                 name: "IX_UserRole_Name",
                 schema: "identity",
                 table: "UserRoles",
@@ -590,6 +538,10 @@ namespace QZBarberShopBooking.Infrastructure.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
+                name: "BookingServices",
+                schema: "booking");
+
+            migrationBuilder.DropTable(
                 name: "EmployeeSchedules",
                 schema: "employee");
 
@@ -610,24 +562,16 @@ namespace QZBarberShopBooking.Infrastructure.Migrations
                 schema: "identity");
 
             migrationBuilder.DropTable(
-                name: "TimeSlots",
-                schema: "schedule");
-
-            migrationBuilder.DropTable(
-                name: "Permissions",
-                schema: "identity");
-
-            migrationBuilder.DropTable(
-                name: "BookingServices",
-                schema: "booking");
-
-            migrationBuilder.DropTable(
                 name: "Bookings",
                 schema: "booking");
 
             migrationBuilder.DropTable(
                 name: "Services",
                 schema: "service");
+
+            migrationBuilder.DropTable(
+                name: "Permissions",
+                schema: "identity");
 
             migrationBuilder.DropTable(
                 name: "Users",

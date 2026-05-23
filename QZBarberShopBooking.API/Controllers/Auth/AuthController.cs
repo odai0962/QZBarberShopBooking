@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using QZBarberShopBooking.API.Controllers.Base;
-using QZBarberShopBooking.API.Middleware;
 using QZBarberShopBooking.Application.DTO.Auth;
 using QZBarberShopBooking.Application.DTO.Shared;
 using QZBarberShopBooking.Application.Interfaces;
@@ -57,9 +56,8 @@ namespace QZBarberShopBooking.API.Controllers.Auth
         }
 
         [HttpPost("register-employee")]
-        [AuthorizeMiddleware]
         [Authorize(Roles = "Admin")]
-        public async Task<ActionResult<ApiResponse<AuthResponseDto>>> RegisterEmployee([FromBody] RegisterDto registerDto)
+        public async Task<ActionResult<ApiResponse<AuthResponseDto>>> RegisterEmployee([FromBody] RegisterEmployeeDto registerDto)
         {
             try
             {
@@ -90,7 +88,7 @@ namespace QZBarberShopBooking.API.Controllers.Auth
         }
 
         [HttpPost("logout")]
-        [AuthorizeMiddleware]
+        [Authorize]
         public async Task<ActionResult<ApiResponse>> Logout()
         {
             try
@@ -107,7 +105,7 @@ namespace QZBarberShopBooking.API.Controllers.Auth
         }
 
         [HttpPost("change-password")]
-        [AuthorizeMiddleware]
+        [Authorize]
         public async Task<ActionResult<ApiResponse>> ChangePassword([FromBody] ChangePasswordDto changePasswordDto)
         {
             try

@@ -38,14 +38,17 @@ namespace QZBarberShopBooking.Application.Helpers
             _httpContextAccessor?.HttpContext?.User?.FindFirst(ClaimTypes.Role)?.Value;
 
         public static string? Email =>
-            _httpContextAccessor?.HttpContext?.User?.FindFirst(ClaimTypes.Email)?.Value;
+            _httpContextAccessor?.HttpContext?.User?.FindFirst(ClaimTypes.Email)?.Value
+            ?? _httpContextAccessor?.HttpContext?.User?.FindFirst("email")?.Value;
 
         public static string? FullName
         {
             get
             {
-                var firstName = _httpContextAccessor?.HttpContext?.User?.FindFirst(ClaimTypes.GivenName)?.Value;
-                var lastName = _httpContextAccessor?.HttpContext?.User?.FindFirst(ClaimTypes.Surname)?.Value;
+                var firstName = _httpContextAccessor?.HttpContext?.User?.FindFirst(ClaimTypes.GivenName)?.Value
+                    ?? _httpContextAccessor?.HttpContext?.User?.FindFirst("given_name")?.Value;
+                var lastName = _httpContextAccessor?.HttpContext?.User?.FindFirst(ClaimTypes.Surname)?.Value
+                    ?? _httpContextAccessor?.HttpContext?.User?.FindFirst("family_name")?.Value;
 
                 if (!string.IsNullOrEmpty(firstName) && !string.IsNullOrEmpty(lastName))
                     return $"{firstName} {lastName}";

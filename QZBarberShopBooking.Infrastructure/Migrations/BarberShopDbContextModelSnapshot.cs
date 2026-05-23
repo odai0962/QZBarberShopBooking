@@ -57,8 +57,11 @@ namespace QZBarberShopBooking.Infrastructure.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("decimal(18,2)");
 
-                    b.Property<int?>("EmployeeId")
+                    b.Property<int>("EmployeeId")
                         .HasColumnType("int");
+
+                    b.Property<DateTime>("EndTimeUtc")
+                        .HasColumnType("datetime2");
 
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
@@ -72,6 +75,9 @@ namespace QZBarberShopBooking.Infrastructure.Migrations
                     b.Property<string>("Notes")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime>("StartTimeUtc")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -104,6 +110,9 @@ namespace QZBarberShopBooking.Infrastructure.Migrations
                     b.HasIndex("CustomerId", "BookingDate")
                         .HasDatabaseName("IX_Booking_CustomerDate");
 
+                    b.HasIndex("StartTimeUtc", "EndTimeUtc")
+                        .HasDatabaseName("IX_Booking_TimeRange");
+
                     b.ToTable("Bookings", "booking");
                 });
 
@@ -133,6 +142,9 @@ namespace QZBarberShopBooking.Infrastructure.Migrations
                     b.Property<int>("EmployeeId")
                         .HasColumnType("int");
 
+                    b.Property<DateTime>("EndTimeUtc")
+                        .HasColumnType("datetime2");
+
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
@@ -149,8 +161,8 @@ namespace QZBarberShopBooking.Infrastructure.Migrations
                     b.Property<int>("ServiceId")
                         .HasColumnType("int");
 
-                    b.Property<int>("TimeSlotId")
-                        .HasColumnType("int");
+                    b.Property<DateTime>("StartTimeUtc")
+                        .HasColumnType("datetime2");
 
                     b.HasKey("Id");
 
@@ -161,6 +173,9 @@ namespace QZBarberShopBooking.Infrastructure.Migrations
 
                     b.HasIndex("BookingId", "ServiceId")
                         .HasDatabaseName("IX_BookingService_BookingService");
+
+                    b.HasIndex("EmployeeId", "StartTimeUtc", "EndTimeUtc")
+                        .HasDatabaseName("IX_BookingService_EmployeeInterval");
 
                     b.ToTable("BookingServices", "booking");
                 });
@@ -431,48 +446,6 @@ namespace QZBarberShopBooking.Infrastructure.Migrations
                     b.ToTable("Services", "service");
                 });
 
-            modelBuilder.Entity("QZBarberShopBooking.Domain.Entities.TimeSlot", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int?>("BookingServiceId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("EmployeeId")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("EndTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("StartTime")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("BookingServiceId")
-                        .IsUnique()
-                        .HasFilter("[BookingServiceId] IS NOT NULL");
-
-                    b.HasIndex("StartTime")
-                        .HasDatabaseName("IX_TimeSlot_StartTime");
-
-                    b.HasIndex("EmployeeId", "StartTime")
-                        .IsUnique()
-                        .HasDatabaseName("IX_TimeSlot_EmployeeStartTime");
-
-                    b.HasIndex("StartTime", "EndTime")
-                        .HasDatabaseName("IX_TimeSlot_TimeRange");
-
-                    b.ToTable("TimeSlots", "schedule", t =>
-                        {
-                            t.HasCheckConstraint("CK_TimeSlot_Time", "[EndTime] > [StartTime] AND DATEDIFF(minute, [StartTime], [EndTime]) <= 240");
-                        });
-                });
-
             modelBuilder.Entity("QZBarberShopBooking.Domain.Entities.User", b =>
                 {
                     b.Property<int>("Id")
@@ -535,7 +508,13 @@ namespace QZBarberShopBooking.Infrastructure.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
-                    b.Property<DateTime>("RefreshTokenExpiryTime")
+                    b.Property<DateTime?>("RefreshTokenExpiryTime")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ResetPasswordToken")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("ResetPasswordTokenExpiry")
                         .HasColumnType("datetime2");
 
                     b.Property<int>("RoleId")
@@ -654,7 +633,8 @@ namespace QZBarberShopBooking.Infrastructure.Migrations
                     b.HasOne("QZBarberShopBooking.Domain.Entities.Employee", "AssignedEmployee")
                         .WithMany("Bookings")
                         .HasForeignKey("EmployeeId")
-                        .OnDelete(DeleteBehavior.Restrict);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.Navigation("AssignedEmployee");
 
@@ -748,24 +728,6 @@ namespace QZBarberShopBooking.Infrastructure.Migrations
                     b.Navigation("Role");
                 });
 
-            modelBuilder.Entity("QZBarberShopBooking.Domain.Entities.TimeSlot", b =>
-                {
-                    b.HasOne("QZBarberShopBooking.Domain.Entities.BookingService", "BookingService")
-                        .WithOne("TimeSlot")
-                        .HasForeignKey("QZBarberShopBooking.Domain.Entities.TimeSlot", "BookingServiceId")
-                        .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("QZBarberShopBooking.Domain.Entities.Employee", "Employee")
-                        .WithMany("TimeSlots")
-                        .HasForeignKey("EmployeeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("BookingService");
-
-                    b.Navigation("Employee");
-                });
-
             modelBuilder.Entity("QZBarberShopBooking.Domain.Entities.User", b =>
                 {
                     b.HasOne("QZBarberShopBooking.Domain.Entities.UserRole", "Role")
@@ -780,12 +742,6 @@ namespace QZBarberShopBooking.Infrastructure.Migrations
             modelBuilder.Entity("QZBarberShopBooking.Domain.Entities.Booking", b =>
                 {
                     b.Navigation("Services");
-                });
-
-            modelBuilder.Entity("QZBarberShopBooking.Domain.Entities.BookingService", b =>
-                {
-                    b.Navigation("TimeSlot")
-                        .IsRequired();
                 });
 
             modelBuilder.Entity("QZBarberShopBooking.Domain.Entities.Permission", b =>
@@ -823,8 +779,6 @@ namespace QZBarberShopBooking.Infrastructure.Migrations
                     b.Navigation("Services");
 
                     b.Navigation("TimeOffs");
-
-                    b.Navigation("TimeSlots");
                 });
 #pragma warning restore 612, 618
         }
