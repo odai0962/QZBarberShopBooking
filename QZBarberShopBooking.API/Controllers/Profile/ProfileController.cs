@@ -13,9 +13,9 @@ namespace QZBarberShopBooking.API.Controllers.Profile;
 [Authorize]
 public class ProfileController : BaseApiController
 {
-    private readonly IUserService _userService;
+    private readonly IUserProfileService _userService;
 
-    public ProfileController(IUserService userService)
+    public ProfileController(IUserProfileService userService)
     {
         _userService = userService;
     }

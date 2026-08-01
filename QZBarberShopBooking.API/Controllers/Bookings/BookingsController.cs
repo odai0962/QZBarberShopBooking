@@ -71,7 +71,8 @@ public class BookingsController : BaseApiController
     [Authorize]
     public async Task<ActionResult<ApiResponse<BookingDto>>> GetById(int id)
     {
-        var booking = await _bookingService.GetByIdAsync(id);
+        var requesterId = UserContext.GetUserIdOrThrow();
+        var booking = await _bookingService.GetByIdAsync(id, requesterId, UserContext.IsInRole("Admin"));
         return Ok(ApiResponse<BookingDto>.Success(booking, "Booking retrieved"));
     }
 
@@ -104,7 +105,7 @@ public class BookingsController : BaseApiController
     public async Task<ActionResult<ApiResponse>> Cancel(int id)
     {
         var userId = UserContext.GetUserIdOrThrow();
-        await _bookingService.CancelAsync(id, userId);
+        await _bookingService.CancelAsync(id, userId, UserContext.IsInRole("Admin"));
         return Ok(ApiResponse.Success("Booking cancelled"));
     }
 
@@ -113,7 +114,7 @@ public class BookingsController : BaseApiController
     public async Task<ActionResult<ApiResponse>> Confirm(int id)
     {
         var employeeId = UserContext.GetUserIdOrThrow();
-        await _bookingService.ConfirmAsync(id, employeeId);
+        await _bookingService.ConfirmAsync(id, employeeId, UserContext.IsInRole("Admin"));
         return Ok(ApiResponse.Success("Booking confirmed"));
     }
 
@@ -122,7 +123,7 @@ public class BookingsController : BaseApiController
     public async Task<ActionResult<ApiResponse>> Complete(int id)
     {
         var employeeId = UserContext.GetUserIdOrThrow();
-        await _bookingService.CompleteAsync(id, employeeId);
+        await _bookingService.CompleteAsync(id, employeeId, UserContext.IsInRole("Admin"));
         return Ok(ApiResponse.Success("Booking completed"));
     }
 

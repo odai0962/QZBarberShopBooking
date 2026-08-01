@@ -1,20 +1,17 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
-using QZBarberShopBooking.Application.Interfaces;
-using QZBarberShopBooking.Infrastructure.Repositories;
 using QZBarberShopBooking.Service.DI.DIType;
-using QZBarberShopBooking.Service.Service.Auth;
-using System.Reflection;
 
 namespace QZBarberShopBooking.Service.DI;
 
 public static class ServiceRegistrationExtensions
 {
+    // Repository<>/UnitOfWork registration lives in Infrastructure's own
+    // AddInfrastructure() extension (called separately from Program.cs) — Service must not
+    // reference Infrastructure at all, since it's the business-logic layer and should be
+    // buildable/testable without pulling in EF Core.
     public static IServiceCollection AddServiceLayer(this IServiceCollection services)
     {
-        services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
-        services.AddScoped<IUnitOfWork, UnitOfWork>();
-
-        var assembly = typeof(AuthService).Assembly;
+        var assembly = typeof(ServiceRegistrationExtensions).Assembly;
         var implementationTypes = assembly.GetTypes()
             .Where(t => t is { IsClass: true, IsAbstract: false }
                 && typeof(IScopedService).IsAssignableFrom(t));
@@ -40,9 +37,4 @@ public static class ServiceRegistrationExtensions
 
         return services;
     }
-
-    [Obsolete("Use AddServiceLayer instead.")]
-    public static IServiceCollection AddScopedServicesFromAssembly(
-        this IServiceCollection services,
-        Assembly assembly) => services.AddServiceLayer();
 }

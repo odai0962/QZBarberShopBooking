@@ -12,9 +12,9 @@ namespace QZBarberShopBooking.API.Controllers.Users;
 [Authorize(Roles = "Admin")]
 public class UsersController : BaseApiController
 {
-    private readonly IUserService _userService;
+    private readonly IUserAdminService _userService;
 
-    public UsersController(IUserService userService)
+    public UsersController(IUserAdminService userService)
     {
         _userService = userService;
     }

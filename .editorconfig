@@ -1,0 +1,34 @@
+root = true
+
+[*]
+indent_style = space
+indent_size = 4
+end_of_line = lf
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+[*.cs]
+csharp_new_line_before_open_brace = all
+csharp_indent_case_contents = true
+csharp_indent_switch_labels = true
+csharp_style_var_for_built_in_types = true:suggestion
+csharp_style_var_when_type_is_apparent = true:suggestion
+csharp_style_expression_bodied_methods = when_on_single_line:suggestion
+csharp_using_directive_placement = outside_namespace:suggestion
+
+dotnet_sort_system_directives_first = true
+dotnet_style_qualification_for_field = false:suggestion
+dotnet_style_qualification_for_property = false:suggestion
+dotnet_style_qualification_for_method = false:suggestion
+
+# Nullable-reference-type gaps (see the architecture review) are real but numerous enough that
+# flipping this to `error` needs its own pass across the DTOs/entities that trigger it, not a
+# side effect of adding this file — left as a warning for now.
+dotnet_diagnostic.CS8618.severity = warning
+
+[*.{json,yml,yaml}]
+indent_size = 2
+
+[*.{csproj,slnx}]
+indent_size = 2

@@ -116,7 +116,7 @@ namespace QZBarberShopBooking.Infrastructure.Migrations
                     b.ToTable("Bookings", "booking");
                 });
 
-            modelBuilder.Entity("QZBarberShopBooking.Domain.Entities.BookingService", b =>
+            modelBuilder.Entity("QZBarberShopBooking.Domain.Entities.BookingServiceLine", b =>
                 {
                     b.Property<int>("Id")
                         .ValueGeneratedOnAdd()
@@ -584,6 +584,13 @@ namespace QZBarberShopBooking.Infrastructure.Migrations
                     b.ToTable("UserRoles", "identity");
                 });
 
+            modelBuilder.Entity("QZBarberShopBooking.Domain.Entities.Admin", b =>
+                {
+                    b.HasBaseType("QZBarberShopBooking.Domain.Entities.User");
+
+                    b.HasDiscriminator().HasValue("Admin");
+                });
+
             modelBuilder.Entity("QZBarberShopBooking.Domain.Entities.Customer", b =>
                 {
                     b.HasBaseType("QZBarberShopBooking.Domain.Entities.User");
@@ -641,7 +648,7 @@ namespace QZBarberShopBooking.Infrastructure.Migrations
                     b.Navigation("Customer");
                 });
 
-            modelBuilder.Entity("QZBarberShopBooking.Domain.Entities.BookingService", b =>
+            modelBuilder.Entity("QZBarberShopBooking.Domain.Entities.BookingServiceLine", b =>
                 {
                     b.HasOne("QZBarberShopBooking.Domain.Entities.Booking", "Booking")
                         .WithMany("Services")

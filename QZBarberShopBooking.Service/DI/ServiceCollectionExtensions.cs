@@ -2,7 +2,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using QZBarberShopBooking.Application.DTO.Auth;
 using QZBarberShopBooking.Application.Validators.Auth;
-using QZBarberShopBooking.Infrastructure.Mappings;
+using QZBarberShopBooking.Service.Mappings;
 using System.Reflection;
 
 namespace QZBarberShopBooking.Service.DI
@@ -11,8 +11,7 @@ namespace QZBarberShopBooking.Service.DI
     {
         public static IServiceCollection AddApplicationLayer(this IServiceCollection services)
         {
-            // Register AutoMapper profiles from Infrastructure
-            services.AddAutoMapper(cfg => cfg.AddProfile<QZBarberShopBooking.Infrastructure.Mappings.AutoMapperProfile>());
+            services.AddAutoMapper(cfg => cfg.AddProfile<AutoMapperProfile>());
 
             // Register validators from Application assembly
             var appAssembly = Assembly.GetAssembly(typeof(QZBarberShopBooking.Application.DTO.Auth.LoginDto));

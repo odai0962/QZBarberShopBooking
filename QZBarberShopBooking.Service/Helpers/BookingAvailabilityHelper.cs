@@ -57,6 +57,10 @@ public static class BookingAvailabilityHelper
         return slots;
     }
 
+    /// <summary>Whether interval [aStart, aEnd) overlaps interval [bStart, bEnd).</summary>
+    public static bool Overlaps(DateTime aStart, DateTime aEnd, DateTime bStart, DateTime bEnd)
+        => aStart < bEnd && aEnd > bStart;
+
     private static bool IsInsideBreak(DateTime start, DateTime end, DateTime dayStart, EmployeeSchedule schedule)
     {
         if (!schedule.BreakStartTime.HasValue || !schedule.BreakEndTime.HasValue)
@@ -64,15 +68,12 @@ public static class BookingAvailabilityHelper
 
         var breakStart = dayStart.Add(schedule.BreakStartTime.Value);
         var breakEnd = dayStart.Add(schedule.BreakEndTime.Value);
-        return start < breakEnd && end > breakStart;
+        return Overlaps(start, end, breakStart, breakEnd);
     }
 
     private static bool IsInTimeOff(DateTime start, DateTime end, IEnumerable<EmployeeTimeOff> timeOffs)
     {
-        return timeOffs.Any(t =>
-            t.IsApproved &&
-            start < t.EndDate &&
-            end > t.StartDate);
+        return timeOffs.Any(t => t.IsApproved && Overlaps(start, end, t.StartDate, t.EndDate));
     }
 
     private static bool HasBookingConflict(DateTime start, DateTime end, IEnumerable<Booking> bookings)
@@ -80,7 +81,6 @@ public static class BookingAvailabilityHelper
         return bookings.Any(b =>
             b.Status is not BookingStatus.Cancelled &&
             !b.IsDeleted &&
-            start < b.EndTimeUtc &&
-            end > b.StartTimeUtc);
+            Overlaps(start, end, b.StartTimeUtc, b.EndTimeUtc));
     }
 }

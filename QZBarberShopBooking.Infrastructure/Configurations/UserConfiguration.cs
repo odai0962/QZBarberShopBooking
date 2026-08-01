@@ -15,9 +15,9 @@ namespace QZBarberShopBooking.Infrastructure.Configurations
 
                 builder.ToTable("Users", schema: "identity")
                     .HasDiscriminator<string>("UserType")
-                    .HasValue<User>("User")
                     .HasValue<Customer>("Customer")
-                    .HasValue<Employee>("Employee");
+                    .HasValue<Employee>("Employee")
+                    .HasValue<Admin>("Admin");
 
                 builder.Property("UserType")
                     .HasMaxLength(20)

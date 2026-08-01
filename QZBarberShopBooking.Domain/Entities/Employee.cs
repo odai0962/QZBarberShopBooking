@@ -14,7 +14,7 @@ namespace QZBarberShopBooking.Domain.Entities
         public ICollection<EmployeeService> Services { get; set; } = new List<EmployeeService>();
         public ICollection<EmployeeSchedule> Schedules { get; set; } = new List<EmployeeSchedule>();
         public ICollection<EmployeeTimeOff> TimeOffs { get; set; } = new List<EmployeeTimeOff>();
-        public ICollection<BookingService> BookingServices { get; set; } = new List<BookingService>();
+        public ICollection<BookingServiceLine> BookingServices { get; set; } = new List<BookingServiceLine>();
         public ICollection<Booking> Bookings { get; set; } = new List<Booking>();
     }
 }
