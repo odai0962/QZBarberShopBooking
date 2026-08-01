@@ -5,7 +5,6 @@ using QZBarberShopBooking.Application.DTO.Shared;
 namespace QZBarberShopBooking.API.Controllers.Base
 {
     [ApiController]
-    [Route("api/[controller]/[action]")]
     [ServiceFilter(typeof(ValidationFilter))]
     public class BaseApiController : ControllerBase
     {

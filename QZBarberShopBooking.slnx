@@ -4,4 +4,5 @@
   <Project Path="QZBarberShopBooking.Domain/QZBarberShopBooking.Domain.csproj" />
   <Project Path="QZBarberShopBooking.Infrastructure/QZBarberShopBooking.Infrastructure.csproj" />
   <Project Path="QZBarberShopBooking.Service/QZBarberShopBooking.Service.csproj" />
+  <Project Path="QZBarberShopBooking.Tests/QZBarberShopBooking.Tests.csproj" />
 </Solution>

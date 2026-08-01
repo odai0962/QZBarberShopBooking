@@ -3,8 +3,8 @@ using Microsoft.OpenApi.Models;
 using QZBarberShopBooking.API.Extensions;
 using QZBarberShopBooking.API.Filters;
 using QZBarberShopBooking.API.Middleware;
-using QZBarberShopBooking.Infrastructure.Authentication;
 using QZBarberShopBooking.Infrastructure.Data;
+using QZBarberShopBooking.Infrastructure.DependencyInjection;
 using QZBarberShopBooking.Service.DI;
 using System.Reflection;
 using System.Text.Json;
@@ -102,13 +102,15 @@ builder.Services.AddDbContext<BarberShopDbContext>(options =>
     }
 });
 
-// Auth, application & service layers
+// Auth, infrastructure, application & service layers
 builder.Services.AddJwtAuthentication(configuration, builder.Environment.IsDevelopment());
+builder.Services.AddInfrastructure();
 builder.Services.AddApplicationLayer();
 builder.Services.AddServiceLayer();
 
-// CORS & health checks
+// CORS, rate limiting & health checks
 builder.Services.AddApiCors(configuration);
+builder.Services.AddApiRateLimiting(configuration);
 builder.Services.AddHealthChecks()
     .AddDbContextCheck<BarberShopDbContext>(name: "database", tags: ["db", "sqlserver"]);
 
@@ -130,6 +132,7 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseUserContext();

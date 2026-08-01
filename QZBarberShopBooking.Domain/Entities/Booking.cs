@@ -28,6 +28,6 @@ namespace QZBarberShopBooking.Domain.Entities
         // Booking must be assigned to a specific employee (barber) chosen by the customer
         public int EmployeeId { get; set; }
         public Employee AssignedEmployee { get; set; }
-        public ICollection<BookingService> Services { get; set; } = new List<BookingService>();
+        public ICollection<BookingServiceLine> Services { get; set; } = new List<BookingServiceLine>();
     }
 }
