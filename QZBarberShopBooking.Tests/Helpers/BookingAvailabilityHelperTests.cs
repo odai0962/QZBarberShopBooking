@@ -12,6 +12,10 @@ public class BookingAvailabilityHelperTests
     private static Employee MakeEmployee(bool availableForBooking = true, bool active = true) => new()
     {
         Id = 1,
+        Username = "sam.barber",
+        Email = "sam.barber@test.local",
+        PasswordHash = "x",
+        PhoneNumber = "1",
         FirstName = "Sam",
         LastName = "Barber",
         IsAvailableForBooking = availableForBooking,
@@ -92,6 +96,7 @@ public class BookingAvailabilityHelperTests
             new EmployeeTimeOff
             {
                 EmployeeId = 1,
+                Reason = "Vacation",
                 IsApproved = true,
                 StartDate = Monday.AddHours(9),
                 EndDate = Monday.AddHours(11)
@@ -114,6 +119,7 @@ public class BookingAvailabilityHelperTests
             new EmployeeTimeOff
             {
                 EmployeeId = 1,
+                Reason = "Vacation",
                 IsApproved = false,
                 StartDate = Monday.AddHours(9),
                 EndDate = Monday.AddHours(10)
