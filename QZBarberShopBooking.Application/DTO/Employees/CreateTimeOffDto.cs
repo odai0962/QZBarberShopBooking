@@ -8,6 +8,6 @@ namespace QZBarberShopBooking.Application.DTO.Employees
     {
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
-        public string Reason { get; set; }
+        public required string Reason { get; set; }
     }
 }

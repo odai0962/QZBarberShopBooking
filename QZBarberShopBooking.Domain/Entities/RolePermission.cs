@@ -8,8 +8,8 @@ namespace QZBarberShopBooking.Domain.Entities
     public class RolePermission : TEntity
     {
         public int PermissionId { get; set; }
-        public Permission Permission { get; set; }
+        public Permission Permission { get; set; } = null!;
         public int RoleId { get; set; }
-        public UserRole Role { get; set; }
+        public UserRole Role { get; set; } = null!;
     }
 }

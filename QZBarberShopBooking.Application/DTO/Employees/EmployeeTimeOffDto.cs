@@ -9,7 +9,7 @@ namespace QZBarberShopBooking.Application.DTO.Employees
         public int Id { get; set; }
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
-        public string Reason { get; set; }
+        public required string Reason { get; set; }
         public bool IsApproved { get; set; }
     }
 }

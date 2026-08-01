@@ -1,12 +1,14 @@
 ﻿using QZBarberShopBooking.Domain.Enums;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 
 namespace QZBarberShopBooking.Application.DTO.Shared
 {
     public class Paginator<T>
     {
+        [SetsRequiredMembers]
         public Paginator(IEnumerable<T> data, int totalCount)
         {
             Data = data.ToList();
@@ -14,7 +16,7 @@ namespace QZBarberShopBooking.Application.DTO.Shared
         }
         public Paginator() { }
 
-        public List<T> Data { get; set; }
+        public required List<T> Data { get; set; }
         public int TotalCount { get; set; }
     }
     public class FilterItem

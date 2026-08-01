@@ -5,7 +5,7 @@ namespace QZBarberShopBooking.Application.Helpers
 {
     public static class UserContext
     {
-        private static IHttpContextAccessor _httpContextAccessor;
+        private static IHttpContextAccessor? _httpContextAccessor;
 
         public static void Configure(IHttpContextAccessor httpContextAccessor)
         {

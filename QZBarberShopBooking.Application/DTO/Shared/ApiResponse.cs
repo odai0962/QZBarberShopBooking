@@ -10,7 +10,7 @@ namespace QZBarberShopBooking.Application.DTO.Shared
         public bool IsSuccess { get; set; }
 
         [JsonPropertyName("message")]
-        public string Message { get; set; }
+        public required string Message { get; set; }
 
         [JsonPropertyName("data")]
         public T? Data { get; set; }
@@ -88,7 +88,7 @@ namespace QZBarberShopBooking.Application.DTO.Shared
 
     public class ApiResponse : ApiResponse<object>
     {
-        public static new ApiResponse Success(string message = "Operation successful")
+        public static ApiResponse Success(string message = "Operation successful")
         {
             return new ApiResponse
             {

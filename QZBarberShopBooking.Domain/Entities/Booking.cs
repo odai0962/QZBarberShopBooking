@@ -24,10 +24,10 @@ namespace QZBarberShopBooking.Domain.Entities
         public DateTime CreationDate { get; set; }
         public DateTime? ModificationDate { get; set; }
         public int CustomerId { get; set; }
-        public Customer Customer { get; set; }
+        public Customer Customer { get; set; } = null!;
         // Booking must be assigned to a specific employee (barber) chosen by the customer
         public int EmployeeId { get; set; }
-        public Employee AssignedEmployee { get; set; }
+        public Employee AssignedEmployee { get; set; } = null!;
         public ICollection<BookingServiceLine> Services { get; set; } = new List<BookingServiceLine>();
     }
 }

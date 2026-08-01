@@ -18,8 +18,7 @@ namespace QZBarberShopBooking.Service.Password
             using var rng = RandomNumberGenerator.Create();
             rng.GetBytes(salt);
 
-            using var pbkdf2 = new Rfc2898DeriveBytes(password, salt, Iterations, HashAlgorithmName.SHA256);
-            var hash = pbkdf2.GetBytes(HashSize);
+            var hash = Rfc2898DeriveBytes.Pbkdf2(password, salt, Iterations, HashAlgorithmName.SHA256, HashSize);
 
             var result = new byte[SaltSize + HashSize];
             Buffer.BlockCopy(salt, 0, result, 0, SaltSize);
@@ -34,8 +33,7 @@ namespace QZBarberShopBooking.Service.Password
             var salt = new byte[SaltSize];
             Buffer.BlockCopy(bytes, 0, salt, 0, SaltSize);
 
-            using var pbkdf2 = new Rfc2898DeriveBytes(providedPassword, salt, Iterations, HashAlgorithmName.SHA256);
-            var hash = pbkdf2.GetBytes(HashSize);
+            var hash = Rfc2898DeriveBytes.Pbkdf2(providedPassword, salt, Iterations, HashAlgorithmName.SHA256, HashSize);
 
             var storedHash = new byte[HashSize];
             Buffer.BlockCopy(bytes, SaltSize, storedHash, 0, HashSize);

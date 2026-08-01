@@ -7,7 +7,7 @@ namespace QZBarberShopBooking.Application.Interfaces
 {
     public interface IRepository<T> where T : class
     {
-        T GetById(int id);
+        T? GetById(int id);
         Task<T?> GetByIdAsync(int id);
 
         IQueryable<T> GetAll(bool isTracking = false);

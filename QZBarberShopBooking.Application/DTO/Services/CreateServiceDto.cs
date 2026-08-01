@@ -6,7 +6,7 @@ namespace QZBarberShopBooking.Application.DTO.Services
 {
     public class CreateServiceDto
     {
-        public string Name { get; set; }
+        public required string Name { get; set; }
         public string? Description { get; set; }
         public TimeSpan DefaultDuration { get; set; }
         public decimal BasePrice { get; set; }

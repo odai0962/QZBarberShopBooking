@@ -8,9 +8,9 @@ namespace QZBarberShopBooking.Domain.Entities
     public class BookingServiceLine : TEntity, IAuditable, IDeletable
     {
         public int ServiceId { get; set; }
-        public Service Service { get; set; }
+        public Service Service { get; set; } = null!;
         public int EmployeeId { get; set; }
-        public Employee Employee { get; set; }
+        public Employee Employee { get; set; } = null!;
         public decimal Price { get; set; }
         // Actual reserved interval for this service (stored in UTC)
         public DateTime StartTimeUtc { get; set; }
@@ -24,7 +24,7 @@ namespace QZBarberShopBooking.Domain.Entities
         public DateTime CreationDate { get; set; }
         public DateTime? ModificationDate { get; set; }
         public int BookingId { get; set; }
-        public Booking Booking { get; set; }
+        public Booking Booking { get; set; } = null!;
 
     }
 }

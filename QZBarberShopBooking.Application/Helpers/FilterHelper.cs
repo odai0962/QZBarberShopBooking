@@ -11,7 +11,7 @@ namespace QZBarberShopBooking.Application.Helpers
 {
     public class FilterHelper
     {
-        public static Expression GetStringMethodCall(Expression property, string methodName, object value)
+        public static Expression? GetStringMethodCall(Expression property, string methodName, object value)
         {
             if (property is MemberExpression memberExpr)
             {
@@ -19,12 +19,14 @@ namespace QZBarberShopBooking.Application.Helpers
 
                 if (propertyType == typeof(string))
                 {
-                    return Expression.Call(property, typeof(string).GetMethod(methodName, new[] { typeof(string) }), Expression.Constant(value.ToString()));
+                    var method = typeof(string).GetMethod(methodName, new[] { typeof(string) })
+                        ?? throw new ArgumentException($"String has no method '{methodName}(string)'", nameof(methodName));
+                    return Expression.Call(property, method, Expression.Constant(value.ToString()));
                 }
             }
             return null;
         }
-        public static Expression GetBoolenMethodCall(Expression property, string methodName, object value)
+        public static Expression? GetBoolenMethodCall(Expression property, string methodName, object value)
         {
             if (property is MemberExpression memberExpr)
             {
@@ -40,7 +42,7 @@ namespace QZBarberShopBooking.Application.Helpers
             }
             return null;
         }
-        public static Expression GetNumericMethodCall(Expression property, string methodName, object value)
+        public static Expression? GetNumericMethodCall(Expression property, string methodName, object value)
         {
             if (property is MemberExpression memberExpr)
             {
@@ -75,7 +77,7 @@ namespace QZBarberShopBooking.Application.Helpers
             }
             return null;
         }
-        public static Expression GetDateTimeMethodCall(Expression property, string methodName, object value)
+        public static Expression? GetDateTimeMethodCall(Expression property, string methodName, object value)
         {
             if (property is MemberExpression memberExpr)
             {
@@ -231,7 +233,7 @@ namespace QZBarberShopBooking.Application.Helpers
             return query;
         }
 
-        private static Expression GetNestedPropertyExpression(Expression parameter, string propertyPath)
+        private static Expression? GetNestedPropertyExpression(Expression parameter, string propertyPath)
         {
             try
             {

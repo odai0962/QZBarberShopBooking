@@ -7,14 +7,14 @@ namespace QZBarberShopBooking.Domain.Entities
 {
     public abstract class User : TEntity, IAuditable, IDeletable
     {
-        public string Username { get; set; }
-        public string Email { get; set; }
-        public string PasswordHash { get; set; }
-        public string PhoneNumber { get; set; }
-        public string FirstName { get; set; }
-        public string LastName { get; set; }
+        public required string Username { get; set; }
+        public required string Email { get; set; }
+        public required string PasswordHash { get; set; }
+        public required string PhoneNumber { get; set; }
+        public required string FirstName { get; set; }
+        public required string LastName { get; set; }
         public bool IsActive { get; set; } = true;
-        public string RefreshToken { get; set; }
+        public string? RefreshToken { get; set; }
         public DateTime? RefreshTokenExpiryTime { get; set; }
 
         // Password reset
@@ -32,6 +32,6 @@ namespace QZBarberShopBooking.Domain.Entities
 
         // Navigation
         public int RoleId { get; set; }
-        public UserRole Role { get; set; }
+        public UserRole Role { get; set; } = null!;
     }
 }

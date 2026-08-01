@@ -64,7 +64,9 @@ namespace QZBarberShopBooking.Service.Auth
         private AuthResponseDto GenerateTokens(User user)
         {
             var jwtSettings = _configuration.GetSection("JwtSettings");
-            var key = Encoding.UTF8.GetBytes(jwtSettings["SecretKey"]);
+            var secretKey = jwtSettings["SecretKey"]
+                ?? throw new InvalidOperationException("JWT Secret Key is not configured");
+            var key = Encoding.UTF8.GetBytes(secretKey);
             var issuer = jwtSettings["Issuer"];
             var audience = jwtSettings["Audience"];
             var expireMinutes = int.Parse(jwtSettings["ExpireMinutes"] ?? "60");
