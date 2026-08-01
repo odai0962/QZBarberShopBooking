@@ -16,6 +16,9 @@
 		     objects that own their .Include() graphs — a larger, separate refactor. -->
 		<PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.1" />
 		<PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.8" />
+		<!-- Version picked from memory, not verified against NuGet from this environment —
+		     run `dotnet add package FirebaseAdmin` in this project to confirm/update it. -->
+		<PackageReference Include="FirebaseAdmin" Version="3.1.0" />
 	</ItemGroup>
 
 	<ItemGroup>

@@ -9,6 +9,11 @@ namespace QZBarberShopBooking.Application.Interfaces
     {
         Task<AuthResponseDto> LoginAsync(LoginDto loginDto, CancellationToken cancellationToken = default);
 
+        /// <summary>Logs in (or auto-registers, on first sign-in) a user authenticated via
+        /// Google/Facebook through Firebase Auth. Issues the same access/refresh token pair as
+        /// <see cref="LoginAsync"/>, so callers don't need to branch on how the user signed in.</summary>
+        Task<AuthResponseDto> SocialLoginAsync(SocialLoginDto socialLoginDto, CancellationToken cancellationToken = default);
+
         Task<AuthResponseDto> RefreshTokenAsync(RefreshTokenDto refreshTokenDto, CancellationToken cancellationToken = default);
 
         Task<bool> LogoutAsync(int userId, CancellationToken cancellationToken = default);

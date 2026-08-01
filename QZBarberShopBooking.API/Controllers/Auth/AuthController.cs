@@ -53,6 +53,15 @@ namespace QZBarberShopBooking.API.Controllers.Auth
             return Ok(ApiResponse<AuthResponseDto>.Success(result, "Employee registration successful"));
         }
 
+        [HttpPost("social-login")]
+        [AllowAnonymous]
+        [EnableRateLimiting(RateLimitingExtensions.AuthPolicy)]
+        public async Task<ActionResult<ApiResponse<AuthResponseDto>>> SocialLogin([FromBody] SocialLoginDto socialLoginDto)
+        {
+            var result = await _authenticationService.SocialLoginAsync(socialLoginDto);
+            return Ok(ApiResponse<AuthResponseDto>.Success(result, "Login successful"));
+        }
+
         [HttpPost("refresh-token")]
         [AllowAnonymous]
         [EnableRateLimiting(RateLimitingExtensions.AuthPolicy)]

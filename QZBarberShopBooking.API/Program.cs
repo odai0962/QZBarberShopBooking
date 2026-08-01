@@ -1,4 +1,6 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using FirebaseAdmin;
+using Google.Apis.Auth.OAuth2;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using QZBarberShopBooking.API.Extensions;
 using QZBarberShopBooking.API.Filters;
@@ -12,6 +14,19 @@ using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 var configuration = builder.Configuration;
+
+// Firebase Admin — verifies the Firebase ID token the mobile app forwards after signing a user
+// in with Google or Facebook. Optional: without a configured service-account key, social login
+// just isn't available (SocialLoginAsync throws a clear error) instead of the API failing to
+// start, so local dev without Firebase set up still works.
+var firebaseKeyPath = configuration["Firebase:ServiceAccountKeyPath"];
+if (!string.IsNullOrWhiteSpace(firebaseKeyPath) && FirebaseApp.DefaultInstance == null)
+{
+    FirebaseApp.Create(new AppOptions
+    {
+        Credential = GoogleCredential.FromFile(firebaseKeyPath)
+    });
+}
 
 // Logging
 builder.Logging.ClearProviders();
