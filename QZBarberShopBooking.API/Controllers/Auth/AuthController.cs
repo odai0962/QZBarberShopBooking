@@ -119,6 +119,7 @@ namespace QZBarberShopBooking.API.Controllers.Auth
 
         [HttpPost("verify-reset-token")]
         [AllowAnonymous]
+        [EnableRateLimiting(RateLimitingExtensions.AuthPolicy)]
         public async Task<ActionResult<ApiResponse>> VerifyResetToken([FromBody] VerifyResetTokenDto verifyResetTokenDto)
         {
             await _passwordResetService.VerifyResetTokenAsync(

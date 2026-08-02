@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -11,6 +12,12 @@ namespace QZBarberShopBooking.Service.Auth
 {
     public class PasswordResetService : IPasswordResetService, IScopedService
     {
+        // A 6-digit code only has 1,000,000 possible values, so a short expiry and a hard cap on
+        // guesses (after which the code is invalidated outright) are load-bearing, not defense in
+        // depth — without them the code space is brute-forceable well within its lifetime.
+        private const int ResetCodeExpiryMinutes = 10;
+        private const int MaxResetAttempts = 5;
+
         private readonly IRepository<User> _userRepository;
         private readonly PasswordService _passwordService;
         private readonly IUnitOfWork _unitOfWork;
@@ -48,20 +55,20 @@ namespace QZBarberShopBooking.Service.Auth
             if (user is null)
                 return true;
 
-            var token = GenerateResetToken();
-            var hashed = TokenHashing.HashSha256(token);
-            user.ResetPasswordToken = hashed;
-            user.ResetPasswordTokenExpiry = DateTime.UtcNow.AddHours(1);
+            var code = GenerateResetCode();
+            user.ResetPasswordToken = TokenHashing.HashSha256(code);
+            user.ResetPasswordTokenExpiry = DateTime.UtcNow.AddMinutes(ResetCodeExpiryMinutes);
+            user.ResetPasswordAttempts = 0;
 
             await _userRepository.UpdateAsync(user, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-            // Only the hash is ever persisted (above) — the raw token exists solely in this
+            // Only the hash is ever persisted (above) — the raw code exists solely in this
             // request and must be delivered out-of-band now, or it's unrecoverable.
             await _emailSender.SendAsync(
                 user.Email,
                 "Reset your Q&Z Barber Shop password",
-                $"Your password reset code is: {token}\nThis code expires in 1 hour. If you didn't request this, you can ignore this email.",
+                $"Your password reset code is: {code}\nThis code expires in {ResetCodeExpiryMinutes} minutes. If you didn't request this, you can ignore this email.",
                 cancellationToken);
 
             return true;
@@ -73,19 +80,31 @@ namespace QZBarberShopBooking.Service.Auth
                 .FirstOrDefaultAsync(u => u.Email.ToLowerInvariant() == email.ToLowerInvariant(), cancellationToken)
                 ?? throw new NotFoundException("User", email);
 
-            var hashed = TokenHashing.HashSha256(token);
             if (!user.ResetPasswordTokenExpiry.HasValue || user.ResetPasswordTokenExpiry.Value < DateTime.UtcNow)
-                throw new UnauthorizedException("Invalid or expired reset token");
+                throw new UnauthorizedException("Invalid or expired reset code");
 
+            if (user.ResetPasswordAttempts >= MaxResetAttempts)
+            {
+                await InvalidateResetCodeAsync(user, cancellationToken);
+                throw new UnauthorizedException("Too many incorrect attempts. Request a new reset code.");
+            }
+
+            var hashed = TokenHashing.HashSha256(token);
             var stored = user.ResetPasswordToken ?? string.Empty;
             var storedBytes = Base64UrlEncoder.DecodeBytes(stored);
             var hashedBytes = Base64UrlEncoder.DecodeBytes(hashed);
             if (!CryptographicOperations.FixedTimeEquals(storedBytes, hashedBytes))
-                throw new UnauthorizedException("Invalid or expired reset token");
+            {
+                user.ResetPasswordAttempts++;
+                await _userRepository.UpdateAsync(user, cancellationToken);
+                await _unitOfWork.SaveChangesAsync(cancellationToken);
+                throw new UnauthorizedException("Invalid or expired reset code");
+            }
 
             user.PasswordHash = _passwordService.HashPassword(newPassword);
             user.ResetPasswordToken = null;
             user.ResetPasswordTokenExpiry = null;
+            user.ResetPasswordAttempts = 0;
 
             await _userRepository.UpdateAsync(user, cancellationToken);
             await _unitOfWork.SaveChangesAsync(cancellationToken);
@@ -93,12 +112,17 @@ namespace QZBarberShopBooking.Service.Auth
             return true;
         }
 
-        private static string GenerateResetToken()
+        private async Task InvalidateResetCodeAsync(User user, CancellationToken cancellationToken)
         {
-            var bytes = new byte[32];
-            using var rng = RandomNumberGenerator.Create();
-            rng.GetBytes(bytes);
-            return Base64UrlEncoder.Encode(bytes);
+            user.ResetPasswordToken = null;
+            user.ResetPasswordTokenExpiry = null;
+            user.ResetPasswordAttempts = 0;
+
+            await _userRepository.UpdateAsync(user, cancellationToken);
+            await _unitOfWork.SaveChangesAsync(cancellationToken);
         }
+
+        private static string GenerateResetCode() =>
+            RandomNumberGenerator.GetInt32(0, 1_000_000).ToString("D6", CultureInfo.InvariantCulture);
     }
 }

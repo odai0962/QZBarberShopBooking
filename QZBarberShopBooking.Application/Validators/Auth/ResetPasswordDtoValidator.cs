@@ -22,7 +22,8 @@ namespace QZBarberShopBooking.Application.Validators.Auth
                 .EmailAddress().WithMessage("Invalid email format");
 
             RuleFor(x => x.Token)
-                .NotEmpty().WithMessage("Reset token is required");
+                .NotEmpty().WithMessage("Reset code is required")
+                .Matches(@"^\d{6}$").WithMessage("Reset code must be 6 digits");
 
             RuleFor(x => x.NewPassword)
                 .NotEmpty().WithMessage("New password is required")
