@@ -1,3 +1,4 @@
+using FluentValidation;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -16,22 +17,40 @@ namespace QZBarberShopBooking.API.Controllers.Auth
         private readonly IAuthenticationService _authenticationService;
         private readonly IRegistrationService _registrationService;
         private readonly IPasswordResetService _passwordResetService;
+        private readonly ILoginPayloadDecryptor _loginPayloadDecryptor;
+        private readonly IValidator<LoginDto> _loginDtoValidator;
 
         public AuthController(
             IAuthenticationService authenticationService,
             IRegistrationService registrationService,
-            IPasswordResetService passwordResetService)
+            IPasswordResetService passwordResetService,
+            ILoginPayloadDecryptor loginPayloadDecryptor,
+            IValidator<LoginDto> loginDtoValidator)
         {
             _authenticationService = authenticationService;
             _registrationService = registrationService;
             _passwordResetService = passwordResetService;
+            _loginPayloadDecryptor = loginPayloadDecryptor;
+            _loginDtoValidator = loginDtoValidator;
         }
 
         [HttpPost("login")]
         [AllowAnonymous]
         [EnableRateLimiting(RateLimitingExtensions.AuthPolicy)]
-        public async Task<ActionResult<ApiResponse<AuthResponseDto>>> Login([FromBody] LoginDto loginDto)
+        public async Task<ActionResult<ApiResponse<AuthResponseDto>>> Login([FromBody] EncryptedLoginRequestDto request)
         {
+            var loginDto = _loginPayloadDecryptor.Decrypt(request.Payload);
+
+            // The decrypted DTO never passes through model binding, so ValidationFilter's
+            // reflection-based lookup never runs LoginDtoValidator against it — run it explicitly
+            // to keep the same email/password rules the plaintext endpoint used to enforce.
+            var validation = await _loginDtoValidator.ValidateAsync(loginDto);
+            if (!validation.IsValid)
+            {
+                var errors = validation.Errors.Select(e => e.ErrorMessage).ToList();
+                return BadRequest(ApiResponse<AuthResponseDto>.Failure(errors, "Validation failed"));
+            }
+
             var result = await _authenticationService.LoginAsync(loginDto);
             return Ok(ApiResponse<AuthResponseDto>.Success(result, "Login successful"));
         }
