@@ -10,5 +10,6 @@ namespace QZBarberShopBooking.Domain.Entities
         public required string Name { get; set; }
         public string? Description { get; set; }
         public ICollection<RolePermission> RolePermissions { get; set; } = new List<RolePermission>();
+        public ICollection<PagePermission> PagePermissions { get; set; } = new List<PagePermission>();
     }
 }

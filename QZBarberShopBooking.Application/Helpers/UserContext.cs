@@ -73,6 +73,13 @@ namespace QZBarberShopBooking.Application.Helpers
             return UserId.Value;
         }
 
+        public static int GetRoleIdOrThrow()
+        {
+            if (!RoleId.HasValue)
+                throw new UnauthorizedAccessException("User role is not resolvable");
+            return RoleId.Value;
+        }
+
         public static string GetUserEmailOrThrow()
         {
             var email = Email;

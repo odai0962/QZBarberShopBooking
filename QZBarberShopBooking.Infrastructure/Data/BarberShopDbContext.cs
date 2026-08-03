@@ -25,6 +25,8 @@ namespace QZBarberShopBooking.Infrastructure.Data
         public DbSet<EmployeeSchedule> EmployeeSchedules { get; set; }
         public DbSet<EmployeeTimeOff> EmployeeTimeOffs { get; set; }
         public DbSet<Page> Pages { get; set; }
+        public DbSet<PagePermission> PagePermissions { get; set; }
+        public DbSet<PagePlatform> PagePlatforms { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
