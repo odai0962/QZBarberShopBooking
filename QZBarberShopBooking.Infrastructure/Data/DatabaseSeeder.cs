@@ -12,19 +12,38 @@ public static class DatabaseSeeder
     // One row per page: which platforms it appears on, and which actions it defines permissions
     // for. An empty Actions list means the page is unrestricted — visible to every authenticated
     // role regardless of RolePermission grants.
+    //
+    // "Employees" also covers the mobile "Barbers" screen (Admin manage-barbers) — it's the same
+    // CRUD feature (EmployeesController) regardless of client, so it gets Mobile added to its
+    // platforms rather than a second page with a different code. Four pages below (Customers,
+    // Gallery, ShopOverview, ShopSettings) have no backing endpoint yet — seeded anyway so the
+    // mobile team can build navigation now and wire the screens up as those features land.
     private static readonly (string Code, string Name, string Icon, string Url, Platform[] Platforms, string[] Actions)[] PageSeeds =
     [
         ("Bookings", "Bookings", "calendar", "/bookings", [Platform.Web, Platform.Mobile], ["View", "Create", "Edit", "Delete"]),
-        ("Employees", "Employees", "users", "/employees", [Platform.Web], ["View", "Create", "Edit", "Delete"]),
+        ("Employees", "Employees", "users", "/employees", [Platform.Web, Platform.Mobile], ["View", "Create", "Edit", "Delete"]),
         ("Services", "Services", "scissors", "/services", [Platform.Web, Platform.Mobile], ["View", "Create", "Edit", "Delete"]),
         ("Users", "Users", "user-cog", "/users", [Platform.Web], ["View", "Create", "Edit", "Delete"]),
         ("Profile", "Profile", "user", "/profile", [Platform.Web, Platform.Mobile], []),
+        ("Home", "Home", "home", "/home", [Platform.Mobile], ["View"]),
+        ("Dashboard", "Dashboard", "grid", "/dashboard", [Platform.Mobile], ["View"]),
+        ("Appointments", "Appointments", "list", "/appointments", [Platform.Mobile], ["View", "Edit"]),
+        ("Customers", "Customers", "users", "/customers", [Platform.Mobile], ["View"]),
+        ("WorkingHours", "Working Hours", "clock", "/working-hours", [Platform.Mobile], ["View", "Edit"]),
+        ("TimeOff", "Time Off", "calendar-off", "/time-off", [Platform.Mobile], ["View", "Create"]),
+        ("Gallery", "Gallery", "image", "/gallery", [Platform.Mobile], ["View", "Edit"]),
+        ("ShopOverview", "Shop Overview", "bar-chart", "/shop-overview", [Platform.Mobile], ["View"]),
+        ("ShopSettings", "Shop Settings", "settings", "/shop-settings", [Platform.Mobile], ["View", "Edit"]),
+        ("Settings", "Settings", "sliders", "/settings", [Platform.Mobile], []),
+        ("Notifications", "Notifications", "bell", "/notifications", [Platform.Mobile], []),
     ];
 
     // Which {PageCode}.{Action} permissions each role is granted, derived from this app's actual
     // [Authorize(Roles=...)] attributes on BookingsController/EmployeesController/
     // ServicesController/UsersController. Fine-grained actions (confirm/cancel/complete/
-    // toggle-status) fold into "Edit". Profile needs no entries — it's an unrestricted page.
+    // toggle-status) fold into "Edit". Zero-permission pages (Profile/Settings/Notifications) need
+    // no entries here — they're unrestricted. "Home" is Customer-only: Admin gets every Barber
+    // page plus admin-exclusive ones, but not Customer's — those are mutually exclusive roles.
     private static readonly (string Role, string PageCode, string[] Actions)[] RoleGrants =
     [
         ("Admin", "Bookings", ["View", "Create", "Edit", "Delete"]),
@@ -36,6 +55,21 @@ public static class DatabaseSeeder
         ("Employee", "Services", ["View"]),
         ("Customer", "Bookings", ["View", "Create", "Edit"]),
         ("Customer", "Services", ["View"]),
+        ("Customer", "Home", ["View"]),
+        ("Employee", "Dashboard", ["View"]),
+        ("Admin", "Dashboard", ["View"]),
+        ("Employee", "Appointments", ["View", "Edit"]),
+        ("Admin", "Appointments", ["View", "Edit"]),
+        ("Employee", "Customers", ["View"]),
+        ("Admin", "Customers", ["View"]),
+        ("Employee", "WorkingHours", ["View", "Edit"]),
+        ("Admin", "WorkingHours", ["View", "Edit"]),
+        ("Employee", "TimeOff", ["View", "Create"]),
+        ("Admin", "TimeOff", ["View", "Create"]),
+        ("Employee", "Gallery", ["View", "Edit"]),
+        ("Admin", "Gallery", ["View", "Edit"]),
+        ("Admin", "ShopOverview", ["View"]),
+        ("Admin", "ShopSettings", ["View", "Edit"]),
     ];
 
     public static async Task SeedAsync(BarberShopDbContext context, ILogger logger, CancellationToken cancellationToken = default)
