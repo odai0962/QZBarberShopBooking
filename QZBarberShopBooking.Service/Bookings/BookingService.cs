@@ -268,6 +268,40 @@ public class BookingService : IBookingService, IScopedService
             bookings);
     }
 
+    // 92 days (~3 months) comfortably covers one calendar month with headroom, well short of a
+    // whole year of per-day availability queries.
+    private const int MaxSummaryRangeDays = 92;
+
+    public async Task<IEnumerable<DateAvailabilityDto>> GetAvailabilitySummaryAsync(
+        int employeeId,
+        DateOnly startDate,
+        DateOnly endDate,
+        int durationMinutes,
+        CancellationToken cancellationToken = default)
+    {
+        if (startDate > endDate)
+            throw new ValidationException(new Dictionary<string, string[]>
+            {
+                { "EndDate", ["End date must not be before start date."] }
+            });
+
+        if (endDate.DayNumber - startDate.DayNumber > MaxSummaryRangeDays)
+            throw new ValidationException(new Dictionary<string, string[]>
+            {
+                { "EndDate", [$"Date range cannot exceed {MaxSummaryRangeDays} days."] }
+            });
+
+        var result = new List<DateAvailabilityDto>();
+        for (var day = startDate; day <= endDate; day = day.AddDays(1))
+        {
+            var slots = await GetAvailableTimeSlotsAsync(
+                employeeId, day.ToDateTime(TimeOnly.MinValue), durationMinutes, cancellationToken);
+            result.Add(new DateAvailabilityDto { Date = day, HasAvailability = slots.Any() });
+        }
+
+        return result;
+    }
+
     public async Task<IEnumerable<BookingDto>> GetCustomerBookingsAsync(int customerId)
     {
         var bookings = await LoadBookingQuery()

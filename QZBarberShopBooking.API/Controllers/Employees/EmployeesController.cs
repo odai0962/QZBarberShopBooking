@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using QZBarberShopBooking.API.Controllers.Base;
+using QZBarberShopBooking.Application.DTO.Bookings;
 using QZBarberShopBooking.Application.DTO.Employees;
 using QZBarberShopBooking.Application.DTO.Services;
 using QZBarberShopBooking.Application.DTO.Shared;
@@ -14,11 +15,13 @@ public class EmployeesController : BaseApiController
 {
     private readonly IEmployeeService _employeeService;
     private readonly IServiceService _serviceService;
+    private readonly IBookingService _bookingService;
 
-    public EmployeesController(IEmployeeService employeeService, IServiceService serviceService)
+    public EmployeesController(IEmployeeService employeeService, IServiceService serviceService, IBookingService bookingService)
     {
         _employeeService = employeeService;
         _serviceService = serviceService;
+        _bookingService = bookingService;
     }
 
     [HttpGet("for-booking")]
@@ -132,6 +135,18 @@ public class EmployeesController : BaseApiController
     {
         var timeOff = await _employeeService.CreateTimeOffAsync(id, dto);
         return Ok(ApiResponse<EmployeeTimeOffDto>.Success(timeOff, "Time off created"));
+    }
+
+    [HttpGet("{id:int}/availability-summary")]
+    [AllowAnonymous]
+    public async Task<ActionResult<ApiResponse<IEnumerable<DateAvailabilityDto>>>> GetAvailabilitySummary(
+        int id,
+        [FromQuery] DateOnly startDate,
+        [FromQuery] DateOnly endDate,
+        [FromQuery] int durationMinutes)
+    {
+        var summary = await _bookingService.GetAvailabilitySummaryAsync(id, startDate, endDate, durationMinutes);
+        return Ok(ApiResponse<IEnumerable<DateAvailabilityDto>>.Success(summary, "Availability summary retrieved"));
     }
 
     [HttpGet("{id:int}/stats")]
