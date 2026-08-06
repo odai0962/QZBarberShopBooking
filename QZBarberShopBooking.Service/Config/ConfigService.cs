@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using QZBarberShopBooking.Application.DTO.Config;
+using QZBarberShopBooking.Application.DTO.Shared;
 using QZBarberShopBooking.Application.Interfaces;
 using QZBarberShopBooking.Domain.Entities;
 using QZBarberShopBooking.Domain.Enums;
@@ -40,7 +41,7 @@ namespace QZBarberShopBooking.Service.Config
                 modules.Add(new ModuleDto
                 {
                     Code = page.Code,
-                    Name = page.PageName,
+                    Name = new LocalizedTextDto { En = page.PageNameEn, Ar = page.PageNameAr },
                     Icon = page.Icon,
                     Url = page.Url,
                     Permissions = permissions

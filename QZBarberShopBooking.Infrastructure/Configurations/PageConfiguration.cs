@@ -24,7 +24,11 @@ namespace QZBarberShopBooking.Infrastructure.Configurations
                 .HasMaxLength(50)
                 .IsRequired();
 
-            builder.Property(p => p.PageName)
+            builder.Property(p => p.PageNameEn)
+                .HasMaxLength(100)
+                .IsRequired();
+
+            builder.Property(p => p.PageNameAr)
                 .HasMaxLength(100)
                 .IsRequired();
 

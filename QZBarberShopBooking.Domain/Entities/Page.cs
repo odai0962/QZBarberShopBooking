@@ -7,7 +7,8 @@ namespace QZBarberShopBooking.Domain.Entities
     public class Page : TEntity
     {
         public required string Code { get; set; } // e.g. "Appointments"
-        public required string PageName { get; set; } // e.g. "Appointments Page"
+        public required string PageNameEn { get; set; } // e.g. "Appointments"
+        public required string PageNameAr { get; set; } // e.g. "المواعيد"
         public string? Icon { get; set; }
         public required string Url { get; set; } // e.g. "/appointments"
 

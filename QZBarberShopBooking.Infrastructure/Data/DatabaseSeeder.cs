@@ -18,24 +18,24 @@ public static class DatabaseSeeder
     // platforms rather than a second page with a different code. Four pages below (Customers,
     // Gallery, ShopOverview, ShopSettings) have no backing endpoint yet — seeded anyway so the
     // mobile team can build navigation now and wire the screens up as those features land.
-    private static readonly (string Code, string Name, string Icon, string Url, Platform[] Platforms, string[] Actions)[] PageSeeds =
+    private static readonly (string Code, string NameEn, string NameAr, string Icon, string Url, Platform[] Platforms, string[] Actions)[] PageSeeds =
     [
-        ("Bookings", "Bookings", "calendar", "/bookings", [Platform.Web, Platform.Mobile], ["View", "Create", "Edit", "Delete"]),
-        ("Employees", "Employees", "users", "/employees", [Platform.Web, Platform.Mobile], ["View", "Create", "Edit", "Delete"]),
-        ("Services", "Services", "scissors", "/services", [Platform.Web, Platform.Mobile], ["View", "Create", "Edit", "Delete"]),
-        ("Users", "Users", "user-cog", "/users", [Platform.Web], ["View", "Create", "Edit", "Delete"]),
-        ("Profile", "Profile", "user", "/profile", [Platform.Web, Platform.Mobile], []),
-        ("Home", "Home", "home", "/home", [Platform.Mobile], ["View"]),
-        ("Dashboard", "Dashboard", "grid", "/dashboard", [Platform.Mobile], ["View"]),
-        ("Appointments", "Appointments", "list", "/appointments", [Platform.Mobile], ["View", "Edit"]),
-        ("Customers", "Customers", "users", "/customers", [Platform.Mobile], ["View"]),
-        ("WorkingHours", "Working Hours", "clock", "/working-hours", [Platform.Mobile], ["View", "Edit"]),
-        ("TimeOff", "Time Off", "calendar-off", "/time-off", [Platform.Mobile], ["View", "Create"]),
-        ("Gallery", "Gallery", "image", "/gallery", [Platform.Mobile], ["View", "Edit"]),
-        ("ShopOverview", "Shop Overview", "bar-chart", "/shop-overview", [Platform.Mobile], ["View"]),
-        ("ShopSettings", "Shop Settings", "settings", "/shop-settings", [Platform.Mobile], ["View", "Edit"]),
-        ("Settings", "Settings", "sliders", "/settings", [Platform.Mobile], []),
-        ("Notifications", "Notifications", "bell", "/notifications", [Platform.Mobile], []),
+        ("Bookings", "Bookings", "الحجوزات", "calendar", "/bookings", [Platform.Web, Platform.Mobile], ["View", "Create", "Edit", "Delete"]),
+        ("Employees", "Employees", "الموظفين", "users", "/employees", [Platform.Web, Platform.Mobile], ["View", "Create", "Edit", "Delete"]),
+        ("Services", "Services", "الخدمات", "scissors", "/services", [Platform.Web, Platform.Mobile], ["View", "Create", "Edit", "Delete"]),
+        ("Users", "Users", "المستخدمين", "user-cog", "/users", [Platform.Web], ["View", "Create", "Edit", "Delete"]),
+        ("Profile", "Profile", "الملف الشخصي", "user", "/profile", [Platform.Web, Platform.Mobile], []),
+        ("Home", "Home", "الرئيسية", "home", "/home", [Platform.Mobile], ["View"]),
+        ("Dashboard", "Dashboard", "لوحة التحكم", "grid", "/dashboard", [Platform.Mobile], ["View"]),
+        ("Appointments", "Appointments", "المواعيد", "list", "/appointments", [Platform.Mobile], ["View", "Edit"]),
+        ("Customers", "Customers", "العملاء", "users", "/customers", [Platform.Mobile], ["View"]),
+        ("WorkingHours", "Working Hours", "ساعات العمل", "clock", "/working-hours", [Platform.Mobile], ["View", "Edit"]),
+        ("TimeOff", "Time Off", "الإجازات", "calendar-off", "/time-off", [Platform.Mobile], ["View", "Create"]),
+        ("Gallery", "Gallery", "المعرض", "image", "/gallery", [Platform.Mobile], ["View", "Edit"]),
+        ("ShopOverview", "Shop Overview", "نظرة عامة على المحل", "bar-chart", "/shop-overview", [Platform.Mobile], ["View"]),
+        ("ShopSettings", "Shop Settings", "إعدادات المحل", "settings", "/shop-settings", [Platform.Mobile], ["View", "Edit"]),
+        ("Settings", "Settings", "الإعدادات", "sliders", "/settings", [Platform.Mobile], []),
+        ("Notifications", "Notifications", "الإشعارات", "bell", "/notifications", [Platform.Mobile], []),
     ];
 
     // Which {PageCode}.{Action} permissions each role is granted, derived from this app's actual
@@ -117,7 +117,7 @@ public static class DatabaseSeeder
 
         foreach (var pageSeed in PageSeeds)
         {
-            var page = new Page { Code = pageSeed.Code, PageName = pageSeed.Name, Icon = pageSeed.Icon, Url = pageSeed.Url };
+            var page = new Page { Code = pageSeed.Code, PageNameEn = pageSeed.NameEn, PageNameAr = pageSeed.NameAr, Icon = pageSeed.Icon, Url = pageSeed.Url };
 
             foreach (var platform in pageSeed.Platforms)
                 page.PagePlatforms.Add(new PagePlatform { Platform = platform });
@@ -125,7 +125,7 @@ public static class DatabaseSeeder
             foreach (var action in pageSeed.Actions)
             {
                 var permissionCode = $"{pageSeed.Code}.{action}";
-                var permission = new Permission { Code = permissionCode, Name = $"{pageSeed.Name} - {action}" };
+                var permission = new Permission { Code = permissionCode, Name = $"{pageSeed.NameEn} - {action}" };
                 permissionsByCode[permissionCode] = permission;
                 page.PagePermissions.Add(new PagePermission { Permission = permission });
             }

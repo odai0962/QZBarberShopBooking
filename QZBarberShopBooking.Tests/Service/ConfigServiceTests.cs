@@ -27,7 +27,7 @@ public class ConfigServiceTests
     {
         var context = TestContextFactory.CreateContext(databaseName);
 
-        var page = new Page { Code = code, PageName = code, Url = $"/{code.ToLowerInvariant()}" };
+        var page = new Page { Code = code, PageNameEn = code, PageNameAr = code, Url = $"/{code.ToLowerInvariant()}" };
         foreach (var platform in platforms)
             page.PagePlatforms.Add(new PagePlatform { Platform = platform });
 
