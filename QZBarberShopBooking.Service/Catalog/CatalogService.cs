@@ -15,42 +15,56 @@ public class CatalogService : IServiceService, IScopedService
     private readonly IRepository<Domain.Entities.EmployeeService> _employeeServiceRepository;
     private readonly IMapper _mapper;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ICacheService _cacheService;
 
     public CatalogService(
         IRepository<Domain.Entities.Service> serviceRepository,
         IRepository<Domain.Entities.EmployeeService> employeeServiceRepository,
         IMapper mapper,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        ICacheService cacheService)
     {
         _serviceRepository = serviceRepository;
         _employeeServiceRepository = employeeServiceRepository;
         _mapper = mapper;
         _unitOfWork = unitOfWork;
+        _cacheService = cacheService;
     }
 
-    public async Task<ServiceDto> GetByIdAsync(int id)
+    public Task<ServiceDto> GetByIdAsync(int id)
     {
-        var service = await _serviceRepository.GetAll()
-            .Include(s => s.EmployeeServices)
-            .ThenInclude(es => es.Employee)
-            .FirstOrDefaultAsync(s => s.Id == id)
-            ?? throw new NotFoundException("Service", id);
+        var key = _cacheService.BuildVersionedKey($"catalog:byid:{id}",
+            typeof(Domain.Entities.Service), typeof(Domain.Entities.EmployeeService), typeof(Domain.Entities.Employee));
 
-        return _mapper.Map<ServiceDto>(service);
+        return _cacheService.GetOrCreateShortTermAsync(key, async () =>
+        {
+            var service = await _serviceRepository.GetAll()
+                .Include(s => s.EmployeeServices)
+                .ThenInclude(es => es.Employee)
+                .FirstOrDefaultAsync(s => s.Id == id)
+                ?? throw new NotFoundException("Service", id);
+
+            return _mapper.Map<ServiceDto>(service);
+        });
     }
 
-    public async Task<IEnumerable<ServiceDto>> GetAllAsync(bool includeInactive = false)
+    public Task<IEnumerable<ServiceDto>> GetAllAsync(bool includeInactive = false)
     {
-        var query = _serviceRepository.GetAll();
-        if (!includeInactive)
-            query = query.Where(s => s.IsActive);
+        var key = _cacheService.BuildVersionedKey($"catalog:all:{includeInactive}", typeof(Domain.Entities.Service));
 
-        var services = await query
-            .OrderBy(s => s.Category)
-            .ThenBy(s => s.Name)
-            .ToListAsync();
+        return _cacheService.GetOrCreateShortTermAsync(key, async () =>
+        {
+            var query = _serviceRepository.GetAll();
+            if (!includeInactive)
+                query = query.Where(s => s.IsActive);
 
-        return _mapper.Map<IEnumerable<ServiceDto>>(services);
+            var services = await query
+                .OrderBy(s => s.Category)
+                .ThenBy(s => s.Name)
+                .ToListAsync();
+
+            return _mapper.Map<IEnumerable<ServiceDto>>(services);
+        });
     }
 
     public async Task<PaginatedResponse<ServiceDto>> GetPagedAsync(PagedRequest request)
@@ -134,25 +148,37 @@ public class CatalogService : IServiceService, IScopedService
         return service.IsActive;
     }
 
-    public async Task<IEnumerable<ServiceDto>> GetByCategoryAsync(string category)
+    public Task<IEnumerable<ServiceDto>> GetByCategoryAsync(string category)
     {
-        var services = await _serviceRepository.GetAll()
-            .Where(s => s.IsActive && s.Category != null && s.Category.ToLower() == category.ToLower())
-            .OrderBy(s => s.Name)
-            .ToListAsync();
+        var key = _cacheService.BuildVersionedKey(
+            $"catalog:category:{category.ToLowerInvariant()}", typeof(Domain.Entities.Service));
 
-        return _mapper.Map<IEnumerable<ServiceDto>>(services);
+        return _cacheService.GetOrCreateShortTermAsync(key, async () =>
+        {
+            var services = await _serviceRepository.GetAll()
+                .Where(s => s.IsActive && s.Category != null && s.Category.ToLower() == category.ToLower())
+                .OrderBy(s => s.Name)
+                .ToListAsync();
+
+            return _mapper.Map<IEnumerable<ServiceDto>>(services);
+        });
     }
 
-    public async Task<IEnumerable<ServiceDto>> GetServicesByEmployeeAsync(int employeeId)
+    public Task<IEnumerable<ServiceDto>> GetServicesByEmployeeAsync(int employeeId)
     {
-        var services = await _employeeServiceRepository.GetAll()
-            .Include(es => es.Service)
-            .Where(es => es.EmployeeId == employeeId && es.IsAvailable && es.Service.IsActive)
-            .Select(es => es.Service)
-            .OrderBy(s => s.Name)
-            .ToListAsync();
+        var key = _cacheService.BuildVersionedKey($"catalog:byemployee:{employeeId}",
+            typeof(Domain.Entities.Service), typeof(Domain.Entities.EmployeeService));
 
-        return _mapper.Map<IEnumerable<ServiceDto>>(services);
+        return _cacheService.GetOrCreateShortTermAsync(key, async () =>
+        {
+            var services = await _employeeServiceRepository.GetAll()
+                .Include(es => es.Service)
+                .Where(es => es.EmployeeId == employeeId && es.IsAvailable && es.Service.IsActive)
+                .Select(es => es.Service)
+                .OrderBy(s => s.Name)
+                .ToListAsync();
+
+            return _mapper.Map<IEnumerable<ServiceDto>>(services);
+        });
     }
 }

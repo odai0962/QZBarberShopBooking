@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
+using QZBarberShopBooking.Application.DTO.Shared;
 using System.Text;
 
 namespace QZBarberShopBooking.API.Extensions
@@ -61,6 +62,28 @@ namespace QZBarberShopBooking.API.Extensions
                             .GetRequiredService<ILogger<JwtBearerEvents>>();
                         logger.LogInformation("Token validated successfully");
                         return Task.CompletedTask;
+                    },
+                    // [Authorize] rejections never throw — the authorization middleware
+                    // short-circuits with an empty body before GlobalExceptionHandler ever gets
+                    // a chance to run, so without these two handlers a 401/403 goes to the client
+                    // with no JSON at all (Dio's/the client's own generic error text stands in
+                    // for a real message). Missing/invalid token -> OnChallenge (401); valid
+                    // token but wrong role -> OnForbidden (403). Same ApiResponse envelope as
+                    // every other error response in the API.
+                    OnChallenge = async context =>
+                    {
+                        context.HandleResponse();
+                        context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                        context.Response.ContentType = "application/json";
+                        const string message = "Authentication required.";
+                        await context.Response.WriteAsJsonAsync(ApiResponse<object>.Failure(message, message));
+                    },
+                    OnForbidden = async context =>
+                    {
+                        context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                        context.Response.ContentType = "application/json";
+                        const string message = "You are not authorized to perform this action.";
+                        await context.Response.WriteAsJsonAsync(ApiResponse<object>.Failure(message, message));
                     }
                 };
             });

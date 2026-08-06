@@ -13,13 +13,23 @@ namespace QZBarberShopBooking.Service.Config
         private static readonly string[] PermissionActions = ["view", "create", "edit", "delete"];
 
         private readonly IRepository<Page> _pageRepository;
+        private readonly ICacheService _cacheService;
 
-        public ConfigService(IRepository<Page> pageRepository)
+        public ConfigService(IRepository<Page> pageRepository, ICacheService cacheService)
         {
             _pageRepository = pageRepository;
+            _cacheService = cacheService;
         }
 
-        public async Task<ModulesResponseDto> GetModulesAsync(int roleId, Platform platform)
+        // Pages/Permissions/RolePermissions are seeded once at startup and never written at
+        // runtime (no controller exposes CRUD for them), so this is a cache-forever candidate —
+        // no version-key wiring, just a long TTL as defensive insurance.
+        public Task<ModulesResponseDto> GetModulesAsync(int roleId, Platform platform)
+            => _cacheService.GetOrCreateLongTermAsync(
+                $"config:modules:{roleId}:{platform}",
+                () => BuildModulesAsync(roleId, platform));
+
+        private async Task<ModulesResponseDto> BuildModulesAsync(int roleId, Platform platform)
         {
             var pages = await _pageRepository.GetAll()
                 .Include(p => p.PagePlatforms)

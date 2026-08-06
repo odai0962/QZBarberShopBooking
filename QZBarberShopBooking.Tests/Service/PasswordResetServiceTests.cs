@@ -43,7 +43,7 @@ public class PasswordResetServiceTests
         return new PasswordResetServiceUnderTest(
             Repo<Domain.Entities.User>(),
             new PasswordService(),
-            new UnitOfWork(context),
+            new UnitOfWork(context, TestContextFactory.CreateCacheService()),
             emailSender ?? new LoggingEmailSender(NullLogger<LoggingEmailSender>.Instance));
     }
 

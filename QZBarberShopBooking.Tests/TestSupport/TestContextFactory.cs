@@ -1,7 +1,9 @@
 using AutoMapper;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging.Abstractions;
 using QZBarberShopBooking.Application.Interfaces;
+using QZBarberShopBooking.Infrastructure.Caching;
 using QZBarberShopBooking.Infrastructure.Data;
 using QZBarberShopBooking.Service.Mappings;
 
@@ -37,6 +39,14 @@ internal static class TestContextFactory
         var configuration = new MapperConfiguration(cfg => cfg.AddProfile<AutoMapperProfile>(), NullLoggerFactory.Instance);
         return configuration.CreateMapper();
     }
+
+    /// <summary>
+    /// A real MemoryCache is free to construct, so there's no reason to fake ICacheService — each
+    /// call site gets its own fresh instance, matching how each test already gets its own fresh
+    /// databaseName/context (no cross-test cache pollution).
+    /// </summary>
+    public static ICacheService CreateCacheService()
+        => new MemoryCacheService(new MemoryCache(new MemoryCacheOptions()), TimeSpan.FromMinutes(1440), TimeSpan.FromMinutes(15));
 }
 
 internal sealed class NoOpNotificationService : INotificationService

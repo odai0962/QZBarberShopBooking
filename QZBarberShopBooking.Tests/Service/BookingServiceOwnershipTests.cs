@@ -85,7 +85,7 @@ public class BookingServiceOwnershipTests
             Repo<EmployeeTimeOff>(),
             new NoOpNotificationService(),
             TestContextFactory.CreateMapper(),
-            new UnitOfWork(context));
+            new UnitOfWork(context, TestContextFactory.CreateCacheService()));
     }
 
     [Fact]

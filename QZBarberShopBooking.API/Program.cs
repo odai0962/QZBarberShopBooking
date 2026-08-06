@@ -125,7 +125,7 @@ builder.Services.AddDbContext<BarberShopDbContext>(options =>
 
 // Auth, infrastructure, application & service layers
 builder.Services.AddJwtAuthentication(configuration, builder.Environment.IsDevelopment());
-builder.Services.AddInfrastructure();
+builder.Services.AddInfrastructure(configuration);
 builder.Services.AddApplicationLayer();
 builder.Services.AddServiceLayer();
 

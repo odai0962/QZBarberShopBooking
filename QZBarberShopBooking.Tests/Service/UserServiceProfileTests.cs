@@ -31,6 +31,7 @@ public class UserServiceProfileTests
 
         var context = TestContextFactory.CreateContext(databaseName);
         IRepository<T> Repo<T>() where T : class => new Repository<T>(context);
+        var cache = TestContextFactory.CreateCacheService();
 
         var sut = new UserServiceUnderTest(
             Repo<Domain.Entities.User>(),
@@ -40,7 +41,8 @@ public class UserServiceProfileTests
             Repo<Admin>(),
             new PasswordService(),
             TestContextFactory.CreateMapper(),
-            new UnitOfWork(context));
+            new UnitOfWork(context, cache),
+            cache);
 
         var dob = new DateTime(1995, 4, 12, 0, 0, 0, DateTimeKind.Utc);
 

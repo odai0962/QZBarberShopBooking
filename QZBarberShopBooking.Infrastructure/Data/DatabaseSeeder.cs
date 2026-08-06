@@ -15,9 +15,18 @@ public static class DatabaseSeeder
     //
     // "Employees" also covers the mobile "Barbers" screen (Admin manage-barbers) — it's the same
     // CRUD feature (EmployeesController) regardless of client, so it gets Mobile added to its
-    // platforms rather than a second page with a different code. Four pages below (Customers,
-    // Gallery, ShopOverview, ShopSettings) have no backing endpoint yet — seeded anyway so the
-    // mobile team can build navigation now and wire the screens up as those features land.
+    // platforms rather than a second page with a different code. It's also the customer-facing
+    // "Specialists" tab — the mobile app relabels the same module client-side
+    // (navigation_shell_branches.dart: labelOverride reads it as navSpecialistsLabel) rather than
+    // needing a second backend page, so Customer is granted View on this same "Employees" code,
+    // not a distinct "Specialists" page. Four pages below (Customers, Gallery, ShopOverview,
+    // ShopSettings) have no backing endpoint yet — seeded anyway so the mobile team can build
+    // navigation now and wire the screens up as those features land.
+    //
+    // "Settings"/"Notifications" are deliberately NOT seeded here — the mobile app's More page
+    // (more_page.dart) hardcodes both as static local rows (App Settings / notification bell) and
+    // never reads either module code from the backend, so returning them here previously just
+    // produced confusing duplicate/dead entries in the mobile More list.
     private static readonly (string Code, string NameEn, string NameAr, string Icon, string Url, Platform[] Platforms, string[] Actions)[] PageSeeds =
     [
         ("Bookings", "Bookings", "الحجوزات", "calendar", "/bookings", [Platform.Web, Platform.Mobile], ["View", "Create", "Edit", "Delete"]),
@@ -34,16 +43,16 @@ public static class DatabaseSeeder
         ("Gallery", "Gallery", "المعرض", "image", "/gallery", [Platform.Mobile], ["View", "Edit"]),
         ("ShopOverview", "Shop Overview", "نظرة عامة على المحل", "bar-chart", "/shop-overview", [Platform.Mobile], ["View"]),
         ("ShopSettings", "Shop Settings", "إعدادات المحل", "settings", "/shop-settings", [Platform.Mobile], ["View", "Edit"]),
-        ("Settings", "Settings", "الإعدادات", "sliders", "/settings", [Platform.Mobile], []),
-        ("Notifications", "Notifications", "الإشعارات", "bell", "/notifications", [Platform.Mobile], []),
     ];
 
     // Which {PageCode}.{Action} permissions each role is granted, derived from this app's actual
     // [Authorize(Roles=...)] attributes on BookingsController/EmployeesController/
     // ServicesController/UsersController. Fine-grained actions (confirm/cancel/complete/
-    // toggle-status) fold into "Edit". Zero-permission pages (Profile/Settings/Notifications) need
-    // no entries here — they're unrestricted. "Home" is Customer-only: Admin gets every Barber
-    // page plus admin-exclusive ones, but not Customer's — those are mutually exclusive roles.
+    // toggle-status) fold into "Edit". Zero-permission pages (Profile) need no entries here —
+    // they're unrestricted. "Home" is Customer-only: Admin gets every Barber page plus
+    // admin-exclusive ones, but not Customer's — those are mutually exclusive roles. Customer gets
+    // "Employees" (its mobile-side "Specialists" tab), not "Services" — the customer app has no
+    // standalone services list screen, services are chosen inline while booking.
     private static readonly (string Role, string PageCode, string[] Actions)[] RoleGrants =
     [
         ("Admin", "Bookings", ["View", "Create", "Edit", "Delete"]),
@@ -54,7 +63,7 @@ public static class DatabaseSeeder
         ("Employee", "Employees", ["View", "Edit"]),
         ("Employee", "Services", ["View"]),
         ("Customer", "Bookings", ["View", "Create", "Edit"]),
-        ("Customer", "Services", ["View"]),
+        ("Customer", "Employees", ["View"]),
         ("Customer", "Home", ["View"]),
         ("Employee", "Dashboard", ["View"]),
         ("Admin", "Dashboard", ["View"]),

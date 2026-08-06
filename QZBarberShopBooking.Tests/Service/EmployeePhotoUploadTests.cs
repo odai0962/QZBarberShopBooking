@@ -31,6 +31,7 @@ public class EmployeePhotoUploadTests
 
         var context = TestContextFactory.CreateContext(databaseName);
         IRepository<T> Repo<T>() where T : class => new Repository<T>(context);
+        var cache = TestContextFactory.CreateCacheService();
 
         var sut = new EmployeeServiceUnderTest(
             Repo<Employee>(),
@@ -42,7 +43,8 @@ public class EmployeePhotoUploadTests
             new PasswordService(),
             new FakePhotoStorageService("https://api.test.local/employee-photos/1-abc.jpg"),
             TestContextFactory.CreateMapper(),
-            new UnitOfWork(context));
+            new UnitOfWork(context, cache),
+            cache);
 
         var result = await sut.UploadPhotoAsync(1, Stream.Null, "photo.jpg");
 
@@ -59,6 +61,7 @@ public class EmployeePhotoUploadTests
         var databaseName = Guid.NewGuid().ToString();
         var context = TestContextFactory.CreateContext(databaseName);
         IRepository<T> Repo<T>() where T : class => new Repository<T>(context);
+        var cache = TestContextFactory.CreateCacheService();
 
         var sut = new EmployeeServiceUnderTest(
             Repo<Employee>(),
@@ -70,7 +73,8 @@ public class EmployeePhotoUploadTests
             new PasswordService(),
             new FakePhotoStorageService("unused"),
             TestContextFactory.CreateMapper(),
-            new UnitOfWork(context));
+            new UnitOfWork(context, cache),
+            cache);
 
         await Assert.ThrowsAsync<NotFoundException>(() => sut.UploadPhotoAsync(999, Stream.Null, "photo.jpg"));
     }

@@ -47,7 +47,7 @@ public class ConfigServiceTests
     private static ConfigServiceUnderTest CreateSut(string databaseName)
     {
         var context = TestContextFactory.CreateContext(databaseName);
-        return new ConfigServiceUnderTest(new Repository<Page>(context));
+        return new ConfigServiceUnderTest(new Repository<Page>(context), TestContextFactory.CreateCacheService());
     }
 
     [Fact]

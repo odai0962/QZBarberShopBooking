@@ -23,6 +23,7 @@ public class EmployeeService : IEmployeeService, IScopedService
     private readonly IEmployeePhotoStorageService _photoStorageService;
     private readonly IMapper _mapper;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ICacheService _cacheService;
 
     public EmployeeService(
         IRepository<Domain.Entities.Employee> employeeRepository,
@@ -34,7 +35,8 @@ public class EmployeeService : IEmployeeService, IScopedService
         PasswordService passwordService,
         IEmployeePhotoStorageService photoStorageService,
         IMapper mapper,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        ICacheService cacheService)
     {
         _employeeRepository = employeeRepository;
         _employeeServiceRepository = employeeServiceRepository;
@@ -46,35 +48,48 @@ public class EmployeeService : IEmployeeService, IScopedService
         _photoStorageService = photoStorageService;
         _mapper = mapper;
         _unitOfWork = unitOfWork;
+        _cacheService = cacheService;
     }
 
-    public async Task<EmployeeDto> GetByIdAsync(int id)
+    public Task<EmployeeDto> GetByIdAsync(int id)
     {
-        var employee = await _employeeRepository.GetAll()
-            .Include(e => e.Role)
-            .Include(e => e.Services).ThenInclude(es => es.Service)
-            .FirstOrDefaultAsync(e => e.Id == id && !e.IsDeleted)
-            ?? throw new NotFoundException("Employee", id);
+        var key = _cacheService.BuildVersionedKey($"employee:byid:{id}",
+            typeof(Domain.Entities.Employee), typeof(Domain.Entities.EmployeeService), typeof(Domain.Entities.Service));
 
-        return _mapper.Map<EmployeeDto>(employee);
+        return _cacheService.GetOrCreateShortTermAsync(key, async () =>
+        {
+            var employee = await _employeeRepository.GetAll()
+                .Include(e => e.Role)
+                .Include(e => e.Services).ThenInclude(es => es.Service)
+                .FirstOrDefaultAsync(e => e.Id == id && !e.IsDeleted)
+                ?? throw new NotFoundException("Employee", id);
+
+            return _mapper.Map<EmployeeDto>(employee);
+        });
     }
 
-    public async Task<IEnumerable<EmployeeDto>> GetAllAsync(bool includeInactive = false)
+    public Task<IEnumerable<EmployeeDto>> GetAllAsync(bool includeInactive = false)
     {
-        var query = _employeeRepository.GetAll()
-            .Include(e => e.Role)
-            .Include(e => e.Services).ThenInclude(es => es.Service)
-            .Where(e => !e.IsDeleted);
+        var key = _cacheService.BuildVersionedKey($"employee:all:{includeInactive}",
+            typeof(Domain.Entities.Employee), typeof(Domain.Entities.EmployeeService), typeof(Domain.Entities.Service));
 
-        if (!includeInactive)
-            query = query.Where(e => e.IsActive && e.IsAvailableForBooking == true);
+        return _cacheService.GetOrCreateShortTermAsync(key, async () =>
+        {
+            var query = _employeeRepository.GetAll()
+                .Include(e => e.Role)
+                .Include(e => e.Services).ThenInclude(es => es.Service)
+                .Where(e => !e.IsDeleted);
 
-        var employees = await query
-            .OrderBy(e => e.FirstName)
-            .ThenBy(e => e.LastName)
-            .ToListAsync();
+            if (!includeInactive)
+                query = query.Where(e => e.IsActive && e.IsAvailableForBooking == true);
 
-        return _mapper.Map<IEnumerable<EmployeeDto>>(employees);
+            var employees = await query
+                .OrderBy(e => e.FirstName)
+                .ThenBy(e => e.LastName)
+                .ToListAsync();
+
+            return _mapper.Map<IEnumerable<EmployeeDto>>(employees);
+        });
     }
 
     public async Task<PaginatedResponse<EmployeeDto>> GetPagedAsync(PagedRequest request)
@@ -120,8 +135,8 @@ public class EmployeeService : IEmployeeService, IScopedService
             throw new ValidationException(new Dictionary<string, string[]>
             { { "Username", ["Username already taken."] } });
 
-        var role = await _roleRepository.GetAll()
-            .FirstOrDefaultAsync(r => r.Name == "Employee")
+        var role = await _cacheService.GetOrCreateLongTermAsync("role:name:Employee",
+                () => _roleRepository.GetAll().FirstOrDefaultAsync(r => r.Name == "Employee"))
             ?? throw new NotFoundException("Role", "Employee");
 
         var employee = _mapper.Map<Domain.Entities.Employee>(createEmployeeDto);
@@ -202,27 +217,33 @@ public class EmployeeService : IEmployeeService, IScopedService
         return _mapper.Map<IEnumerable<EmployeeDto>>(result);
     }
 
-    public async Task<EmployeeScheduleDto> GetScheduleAsync(int employeeId)
+    public Task<EmployeeScheduleDto> GetScheduleAsync(int employeeId)
     {
-        _ = await _employeeRepository.GetByIdAsync(employeeId)
-            ?? throw new NotFoundException("Employee", employeeId);
+        var key = _cacheService.BuildVersionedKey(
+            $"employee:schedule:{employeeId}", typeof(EmployeeSchedule), typeof(EmployeeTimeOff));
 
-        var schedules = await _scheduleRepository.GetAll()
-            .Where(s => s.EmployeeId == employeeId)
-            .OrderBy(s => s.DayOfWeek)
-            .ToListAsync();
-
-        var timeOffs = await _timeOffRepository.GetAll()
-            .Where(t => t.EmployeeId == employeeId)
-            .OrderByDescending(t => t.StartDate)
-            .ToListAsync();
-
-        return new EmployeeScheduleDto
+        return _cacheService.GetOrCreateShortTermAsync(key, async () =>
         {
-            EmployeeId = employeeId,
-            ScheduleDays = _mapper.Map<List<EmployeeScheduleDayDto>>(schedules),
-            TimeOffs = _mapper.Map<List<EmployeeTimeOffDto>>(timeOffs)
-        };
+            _ = await _employeeRepository.GetByIdAsync(employeeId)
+                ?? throw new NotFoundException("Employee", employeeId);
+
+            var schedules = await _scheduleRepository.GetAll()
+                .Where(s => s.EmployeeId == employeeId)
+                .OrderBy(s => s.DayOfWeek)
+                .ToListAsync();
+
+            var timeOffs = await _timeOffRepository.GetAll()
+                .Where(t => t.EmployeeId == employeeId)
+                .OrderByDescending(t => t.StartDate)
+                .ToListAsync();
+
+            return new EmployeeScheduleDto
+            {
+                EmployeeId = employeeId,
+                ScheduleDays = _mapper.Map<List<EmployeeScheduleDayDto>>(schedules),
+                TimeOffs = _mapper.Map<List<EmployeeTimeOffDto>>(timeOffs)
+            };
+        });
     }
 
     public async Task<EmployeeScheduleDto> UpdateScheduleAsync(int employeeId, UpdateScheduleDto updateScheduleDto)
@@ -255,14 +276,19 @@ public class EmployeeService : IEmployeeService, IScopedService
         return await GetScheduleAsync(employeeId);
     }
 
-    public async Task<IEnumerable<EmployeeTimeOffDto>> GetTimeOffsAsync(int employeeId)
+    public Task<IEnumerable<EmployeeTimeOffDto>> GetTimeOffsAsync(int employeeId)
     {
-        var timeOffs = await _timeOffRepository.GetAll()
-            .Where(t => t.EmployeeId == employeeId)
-            .OrderByDescending(t => t.StartDate)
-            .ToListAsync();
+        var key = _cacheService.BuildVersionedKey($"employee:timeoffs:{employeeId}", typeof(EmployeeTimeOff));
 
-        return _mapper.Map<IEnumerable<EmployeeTimeOffDto>>(timeOffs);
+        return _cacheService.GetOrCreateShortTermAsync(key, async () =>
+        {
+            var timeOffs = await _timeOffRepository.GetAll()
+                .Where(t => t.EmployeeId == employeeId)
+                .OrderByDescending(t => t.StartDate)
+                .ToListAsync();
+
+            return _mapper.Map<IEnumerable<EmployeeTimeOffDto>>(timeOffs);
+        });
     }
 
     public async Task<EmployeeTimeOffDto> CreateTimeOffAsync(int employeeId, CreateTimeOffDto createTimeOffDto)

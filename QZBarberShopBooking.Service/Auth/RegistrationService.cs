@@ -19,6 +19,7 @@ namespace QZBarberShopBooking.Service.Auth
         private readonly IMapper _mapper;
         private readonly IUnitOfWork _unitOfWork;
         private readonly ITokenService _tokenService;
+        private readonly ICacheService _cacheService;
 
         public RegistrationService(
             IRepository<User> userRepository,
@@ -28,7 +29,8 @@ namespace QZBarberShopBooking.Service.Auth
             PasswordService passwordService,
             IMapper mapper,
             IUnitOfWork unitOfWork,
-            ITokenService tokenService)
+            ITokenService tokenService,
+            ICacheService cacheService)
         {
             _userRepository = userRepository;
             _roleRepository = roleRepository;
@@ -38,6 +40,7 @@ namespace QZBarberShopBooking.Service.Auth
             _mapper = mapper;
             _unitOfWork = unitOfWork;
             _tokenService = tokenService;
+            _cacheService = cacheService;
         }
 
         public async Task<AuthResponseDto> RegisterAsync(RegisterDto registerDto, CancellationToken cancellationToken = default)
@@ -48,8 +51,8 @@ namespace QZBarberShopBooking.Service.Auth
             if (await _userRepository.AnyAsync(u => u.Username.ToLower() == registerDto.Username.ToLower()))
                 throw new ValidationException(new Dictionary<string, string[]> { { "Username", new[] { "Username already taken" } } });
 
-            var role = await _roleRepository.GetAll()
-                .FirstOrDefaultAsync(r => r.Name == "Customer", cancellationToken)
+            var role = await _cacheService.GetOrCreateLongTermAsync("role:name:Customer",
+                    () => _roleRepository.GetAll().FirstOrDefaultAsync(r => r.Name == "Customer", cancellationToken))
                 ?? throw new NotFoundException("Role", "Customer");
 
             var customer = _mapper.Map<Customer>(registerDto);
@@ -74,8 +77,8 @@ namespace QZBarberShopBooking.Service.Auth
             if (usernameExists)
                 throw new ValidationException(new Dictionary<string, string[]> { { "Username", new[] { "Username already taken" } } });
 
-            var role = await _roleRepository.GetAll()
-                .FirstOrDefaultAsync(r => r.Name == "Employee", cancellationToken)
+            var role = await _cacheService.GetOrCreateLongTermAsync("role:name:Employee",
+                    () => _roleRepository.GetAll().FirstOrDefaultAsync(r => r.Name == "Employee", cancellationToken))
                 ?? throw new NotFoundException("Role", "Employee");
 
             var employee = _mapper.Map<Employee>(registerDto);

@@ -22,6 +22,7 @@ public class UserService : IUserProfileService, IUserAdminService, IScopedServic
     private readonly PasswordService _passwordService;
     private readonly IMapper _mapper;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ICacheService _cacheService;
 
     public UserService(
         IRepository<Domain.Entities.User> userRepository,
@@ -31,7 +32,8 @@ public class UserService : IUserProfileService, IUserAdminService, IScopedServic
         IRepository<Admin> adminRepository,
         PasswordService passwordService,
         IMapper mapper,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        ICacheService cacheService)
     {
         _userRepository = userRepository;
         _roleRepository = roleRepository;
@@ -41,6 +43,7 @@ public class UserService : IUserProfileService, IUserAdminService, IScopedServic
         _passwordService = passwordService;
         _mapper = mapper;
         _unitOfWork = unitOfWork;
+        _cacheService = cacheService;
     }
 
     public async Task<UserDto> GetCurrentUserProfile()
@@ -123,7 +126,8 @@ public class UserService : IUserProfileService, IUserAdminService, IScopedServic
             throw new ValidationException(new Dictionary<string, string[]>
             { { "Username", new[] { "Username already taken" } } });
 
-        var role = await _roleRepository.GetByIdAsync(createUserDto.RoleId)
+        var role = await _cacheService.GetOrCreateLongTermAsync($"role:id:{createUserDto.RoleId}",
+                () => _roleRepository.GetByIdAsync(createUserDto.RoleId))
             ?? throw new NotFoundException("Role", createUserDto.RoleId);
 
         var passwordHash = _passwordService.HashPassword(createUserDto.Password);

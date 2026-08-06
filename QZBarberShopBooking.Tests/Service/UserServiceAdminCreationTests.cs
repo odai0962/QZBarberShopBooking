@@ -27,6 +27,7 @@ public class UserServiceAdminCreationTests
         var context = TestContextFactory.CreateContext(databaseName);
 
         IRepository<T> Repo<T>() where T : class => new Repository<T>(context);
+        var cache = TestContextFactory.CreateCacheService();
 
         var sut = new UserServiceUnderTest(
             Repo<Domain.Entities.User>(),
@@ -36,7 +37,8 @@ public class UserServiceAdminCreationTests
             Repo<Admin>(),
             new PasswordService(),
             TestContextFactory.CreateMapper(),
-            new UnitOfWork(context));
+            new UnitOfWork(context, cache),
+            cache);
 
         var dto = new CreateUserDto
         {

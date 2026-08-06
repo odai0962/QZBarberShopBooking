@@ -108,8 +108,12 @@ public class EmployeesController : BaseApiController
         return Ok(ApiResponse.Success("Services assigned to employee"));
     }
 
+    // Public on purpose — the customer-facing booking flow needs a barber's working
+    // days/hours (and time-offs) to know which calendar dates are bookable at all, same
+    // as GetAvailability/GetAvailabilitySummary below. Mutating the schedule (PUT) stays
+    // Admin/Employee-only.
     [HttpGet("{id:int}/schedule")]
-    [Authorize(Roles = "Admin,Employee")]
+    [AllowAnonymous]
     public async Task<ActionResult<ApiResponse<EmployeeScheduleDto>>> GetSchedule(int id)
     {
         var schedule = await _employeeService.GetScheduleAsync(id);

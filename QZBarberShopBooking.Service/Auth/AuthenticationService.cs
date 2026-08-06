@@ -22,6 +22,7 @@ namespace QZBarberShopBooking.Service.Auth
         private readonly IUnitOfWork _unitOfWork;
         private readonly ITokenService _tokenService;
         private readonly ISocialAuthTokenVerifier _socialAuthTokenVerifier;
+        private readonly ICacheService _cacheService;
 
         public AuthenticationService(
             IRepository<User> userRepository,
@@ -31,7 +32,8 @@ namespace QZBarberShopBooking.Service.Auth
             IConfiguration configuration,
             IUnitOfWork unitOfWork,
             ITokenService tokenService,
-            ISocialAuthTokenVerifier socialAuthTokenVerifier)
+            ISocialAuthTokenVerifier socialAuthTokenVerifier,
+            ICacheService cacheService)
         {
             _userRepository = userRepository;
             _roleRepository = roleRepository;
@@ -41,6 +43,7 @@ namespace QZBarberShopBooking.Service.Auth
             _unitOfWork = unitOfWork;
             _tokenService = tokenService;
             _socialAuthTokenVerifier = socialAuthTokenVerifier;
+            _cacheService = cacheService;
         }
 
         public async Task<AuthResponseDto> LoginAsync(LoginDto loginDto, CancellationToken cancellationToken = default)
@@ -71,8 +74,8 @@ namespace QZBarberShopBooking.Service.Auth
 
             if (user == null)
             {
-                var role = await _roleRepository.GetAll()
-                    .FirstOrDefaultAsync(r => r.Name == "Customer", cancellationToken)
+                var role = await _cacheService.GetOrCreateLongTermAsync("role:name:Customer",
+                        () => _roleRepository.GetAll().FirstOrDefaultAsync(r => r.Name == "Customer", cancellationToken))
                     ?? throw new NotFoundException("Role", "Customer");
 
                 var customer = new Customer
