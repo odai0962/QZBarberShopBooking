@@ -291,3 +291,8 @@ __pycache__/
 *.btp.cs
 .sonarqube/
 *.sonar
+
+# -----------------------------------------------------------------------------
+# User-uploaded content (local disk storage — never commit uploaded files)
+# -----------------------------------------------------------------------------
+QZBarberShopBooking.API/wwwroot/employee-photos/

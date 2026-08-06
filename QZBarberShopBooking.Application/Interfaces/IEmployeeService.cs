@@ -22,5 +22,6 @@ namespace QZBarberShopBooking.Application.Interfaces
         Task<EmployeeTimeOffDto> CreateTimeOffAsync(int employeeId, CreateTimeOffDto createTimeOffDto);
         Task<EmployeeStatsDto> GetStatsAsync(int employeeId, DateTime? startDate, DateTime? endDate);
         Task AssignServicesAsync(int employeeId, AssignEmployeeServicesDto dto);
+        Task<EmployeeDto> UploadPhotoAsync(int employeeId, Stream content, string fileName, CancellationToken cancellationToken = default);
     }
 }

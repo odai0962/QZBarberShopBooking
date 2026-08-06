@@ -7,6 +7,15 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<!-- IWebHostEnvironment (LocalEmployeePhotoStorageService) isn't in the old
+		     Microsoft.AspNetCore.*.Abstractions NuGet packages (those predate IWebHostEnvironment,
+		     which replaced IHostingEnvironment in ASP.NET Core 3.0) — the modern, correct way to
+		     reference current ASP.NET Core types from a non-Web-SDK project is this shared
+		     framework reference, not a legacy compat package. -->
+		<FrameworkReference Include="Microsoft.AspNetCore.App" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<PackageReference Include="AutoMapper" Version="16.1.1" />
 		<!-- Service still queries through IQueryable<T> exposed by IRepository<T>, so it needs
 		     EF Core's LINQ provider. This is a package dependency (like FluentValidation), not a
@@ -15,7 +24,8 @@
 		     generic IRepository<T>/IQueryable pattern with entity-specific repositories or query
 		     objects that own their .Include() graphs — a larger, separate refactor. -->
 		<PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.1" />
-		<PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="10.0.8" />
+		<!-- Microsoft.Extensions.Configuration.Abstractions is no longer listed explicitly — the
+		     FrameworkReference above already brings it in transitively (NU1510). -->
 		<!-- Version picked from memory, not verified against NuGet from this environment —
 		     run `dotnet add package FirebaseAdmin` in this project to confirm/update it. -->
 		<PackageReference Include="FirebaseAdmin" Version="3.1.0" />

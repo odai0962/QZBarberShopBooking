@@ -11,6 +11,7 @@ namespace QZBarberShopBooking.Domain.Entities
         public decimal? HourlyRate { get; set; }
         public DateTime? HireDate { get; set; }
         public bool? IsAvailableForBooking { get; set; }
+        public string? PhotoUrl { get; set; }
         public ICollection<EmployeeService> Services { get; set; } = new List<EmployeeService>();
         public ICollection<EmployeeSchedule> Schedules { get; set; } = new List<EmployeeSchedule>();
         public ICollection<EmployeeTimeOff> TimeOffs { get; set; } = new List<EmployeeTimeOff>();

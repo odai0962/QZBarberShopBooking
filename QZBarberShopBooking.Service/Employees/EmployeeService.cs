@@ -20,6 +20,7 @@ public class EmployeeService : IEmployeeService, IScopedService
     private readonly IRepository<UserRole> _roleRepository;
     private readonly IRepository<Domain.Entities.Service> _serviceRepository;
     private readonly PasswordService _passwordService;
+    private readonly IEmployeePhotoStorageService _photoStorageService;
     private readonly IMapper _mapper;
     private readonly IUnitOfWork _unitOfWork;
 
@@ -31,6 +32,7 @@ public class EmployeeService : IEmployeeService, IScopedService
         IRepository<UserRole> roleRepository,
         IRepository<Domain.Entities.Service> serviceRepository,
         PasswordService passwordService,
+        IEmployeePhotoStorageService photoStorageService,
         IMapper mapper,
         IUnitOfWork unitOfWork)
     {
@@ -41,6 +43,7 @@ public class EmployeeService : IEmployeeService, IScopedService
         _roleRepository = roleRepository;
         _serviceRepository = serviceRepository;
         _passwordService = passwordService;
+        _photoStorageService = photoStorageService;
         _mapper = mapper;
         _unitOfWork = unitOfWork;
     }
@@ -305,6 +308,20 @@ public class EmployeeService : IEmployeeService, IScopedService
     {
         await AssignServicesInternalAsync(employeeId, dto.ServiceIds);
         await _unitOfWork.SaveChangesAsync();
+    }
+
+    public async Task<EmployeeDto> UploadPhotoAsync(int employeeId, Stream content, string fileName, CancellationToken cancellationToken = default)
+    {
+        var employee = await _employeeRepository.GetByIdAsync(employeeId)
+            ?? throw new NotFoundException("Employee", employeeId);
+
+        employee.PhotoUrl = await _photoStorageService.SavePhotoAsync(employeeId, content, fileName, cancellationToken);
+        employee.ModificationDate = DateTime.UtcNow;
+
+        await _employeeRepository.UpdateAsync(employee, cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return await GetByIdAsync(employeeId);
     }
 
     private async Task AssignServicesInternalAsync(int employeeId, IEnumerable<int> serviceIds)

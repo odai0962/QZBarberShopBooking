@@ -13,5 +13,6 @@ namespace QZBarberShopBooking.Application.DTO.Employees
         public string? Bio { get; set; }
         public decimal? HourlyRate { get; set; }
         public bool? IsAvailableForBooking { get; set; }
+        public string? PhotoUrl { get; set; }
     }
 }

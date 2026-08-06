@@ -134,6 +134,10 @@ var app = builder.Build();
 // Middleware pipeline (order matters)
 app.UseGlobalExceptionHandler();
 
+// Serves wwwroot/employee-photos (and any future wwwroot content) directly — bypasses auth
+// entirely, matching the requirement that photo URLs load with no Authorization header.
+app.UseStaticFiles();
+
 if (!app.Environment.IsDevelopment())
 {
     app.UseHttpsRedirection();

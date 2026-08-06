@@ -13,6 +13,9 @@ namespace QZBarberShopBooking.API.Controllers.Employees;
 [ApiController]
 public class EmployeesController : BaseApiController
 {
+    private const long MaxPhotoBytes = 5 * 1024 * 1024; // 5 MB
+    private static readonly string[] AllowedPhotoExtensions = [".jpg", ".jpeg", ".png", ".webp"];
+
     private readonly IEmployeeService _employeeService;
     private readonly IServiceService _serviceService;
     private readonly IBookingService _bookingService;
@@ -135,6 +138,23 @@ public class EmployeesController : BaseApiController
     {
         var timeOff = await _employeeService.CreateTimeOffAsync(id, dto);
         return Ok(ApiResponse<EmployeeTimeOffDto>.Success(timeOff, "Time off created"));
+    }
+
+    [HttpPost("{id:int}/photo")]
+    [Authorize(Roles = "Admin,Employee")]
+    [RequestSizeLimit(MaxPhotoBytes)]
+    public async Task<ActionResult<ApiResponse<EmployeeDto>>> UploadPhoto(int id, IFormFile photo)
+    {
+        if (photo.Length == 0 || photo.Length > MaxPhotoBytes)
+            return BadRequest(ApiResponse<EmployeeDto>.Failure("Photo must be between 1 byte and 5 MB.", "Validation failed"));
+
+        var extension = Path.GetExtension(photo.FileName).ToLowerInvariant();
+        if (!AllowedPhotoExtensions.Contains(extension))
+            return BadRequest(ApiResponse<EmployeeDto>.Failure("Only .jpg, .jpeg, .png, .webp are allowed.", "Validation failed"));
+
+        await using var stream = photo.OpenReadStream();
+        var employee = await _employeeService.UploadPhotoAsync(id, stream, photo.FileName);
+        return Ok(ApiResponse<EmployeeDto>.Success(employee, "Photo uploaded successfully"));
     }
 
     [HttpGet("{id:int}/availability-summary")]

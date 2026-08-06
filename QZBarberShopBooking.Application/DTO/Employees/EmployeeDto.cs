@@ -13,6 +13,7 @@ namespace QZBarberShopBooking.Application.DTO.Employees
         public decimal? HourlyRate { get; set; }
         public DateTime? HireDate { get; set; }
         public bool IsAvailableForBooking { get; set; }
+        public string? PhotoUrl { get; set; }
 
         /// <summary>Null until a real rating/review system exists — never fabricated.</summary>
         public decimal? Rating { get; set; }

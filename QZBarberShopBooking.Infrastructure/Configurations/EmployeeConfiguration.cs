@@ -13,6 +13,8 @@ namespace QZBarberShopBooking.Infrastructure.Configurations
         {
             builder.HasBaseType<User>();
 
+            builder.Property(e => e.PhotoUrl)
+                .HasMaxLength(500);
         }
     }
 }
