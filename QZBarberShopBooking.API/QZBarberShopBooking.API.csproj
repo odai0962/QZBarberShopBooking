@@ -10,7 +10,6 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<PackageReference Include="AspNetCore.HealthChecks.Uris" Version="9.0.0" />
 		<PackageReference Include="AutoMapper" Version="16.1.1" />
 		<!-- Version picked from memory, not verified against NuGet from this environment —
 		     run `dotnet add package FirebaseAdmin` in this project to confirm/update it. -->

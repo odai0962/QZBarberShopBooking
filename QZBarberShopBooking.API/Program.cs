@@ -1,5 +1,6 @@
 ﻿using FirebaseAdmin;
 using Google.Apis.Auth.OAuth2;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using QZBarberShopBooking.API.Extensions;
@@ -50,6 +51,10 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ValidationFilter>();
 builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+// Required for UseExceptionHandler()'s startup check, even though GlobalExceptionHandler always
+// writes the response itself and returns true — IProblemDetailsService is registered but never
+// actually invoked, so the ApiResponse JSON shape below is unaffected.
+builder.Services.AddProblemDetails();
 
 // Swagger
 builder.Services.AddSwaggerGen(options =>
@@ -158,7 +163,31 @@ app.UseAuthorization();
 app.UseUserContext();
 
 app.MapControllers();
-app.MapHealthChecks("/health").AllowAnonymous();
+app.MapHealthChecks("/health", new HealthCheckOptions
+{
+    // /health is AllowAnonymous, so the response only ever exposes check name/status/duration/tags
+    // — never HealthReportEntry.Description or .Exception, since for AddDbContextCheck those
+    // default to the raw connection failure message and would leak DB/server details to anyone.
+    ResponseWriter = async (context, report) =>
+    {
+        context.Response.ContentType = "application/json";
+
+        var payload = new
+        {
+            status = report.Status.ToString(),
+            totalDurationMs = report.TotalDuration.TotalMilliseconds,
+            checks = report.Entries.Select(e => new
+            {
+                name = e.Key,
+                status = e.Value.Status.ToString(),
+                durationMs = e.Value.Duration.TotalMilliseconds,
+                tags = e.Value.Tags
+            })
+        };
+
+        await context.Response.WriteAsync(JsonSerializer.Serialize(payload));
+    }
+}).AllowAnonymous();
 
 app.MapGet("/", (IWebHostEnvironment env) =>
     env.IsDevelopment()
