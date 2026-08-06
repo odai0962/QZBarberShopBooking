@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Http;
+using QZBarberShopBooking.Application.Exceptions;
 using System.Security.Claims;
 
 namespace QZBarberShopBooking.Application.Helpers
@@ -69,14 +70,14 @@ namespace QZBarberShopBooking.Application.Helpers
         public static int GetUserIdOrThrow()
         {
             if (!UserId.HasValue)
-                throw new UnauthorizedAccessException("User is not authenticated");
+                throw new UnauthorizedException("User is not authenticated");
             return UserId.Value;
         }
 
         public static int GetRoleIdOrThrow()
         {
             if (!RoleId.HasValue)
-                throw new UnauthorizedAccessException("User role is not resolvable");
+                throw new UnauthorizedException("User role is not resolvable");
             return RoleId.Value;
         }
 
@@ -84,7 +85,7 @@ namespace QZBarberShopBooking.Application.Helpers
         {
             var email = Email;
             if (string.IsNullOrEmpty(email))
-                throw new UnauthorizedAccessException("User email not found");
+                throw new UnauthorizedException("User email not found");
             return email;
         }
     }

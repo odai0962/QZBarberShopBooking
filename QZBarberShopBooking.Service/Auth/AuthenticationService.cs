@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
 using QZBarberShopBooking.Application.DTO.Auth;
 using QZBarberShopBooking.Application.Exceptions;
 using QZBarberShopBooking.Application.Helpers;
@@ -7,6 +8,7 @@ using QZBarberShopBooking.Application.Interfaces;
 using QZBarberShopBooking.Domain.Entities;
 using QZBarberShopBooking.Service.DI.DIType;
 using QZBarberShopBooking.Service.Password;
+using System.Security.Claims;
 
 namespace QZBarberShopBooking.Service.Auth
 {
@@ -135,11 +137,19 @@ namespace QZBarberShopBooking.Service.Auth
             var secretKey = jwtSettings["SecretKey"]
                 ?? throw new InvalidOperationException("JWT Secret Key is not configured");
 
-            var principal = JWTHelper.GetPrincipalFromExpiredToken(
-                refreshTokenDto.AccessToken,
-                secretKey,
-                jwtSettings["Issuer"],
-                jwtSettings["Audience"]);
+            ClaimsPrincipal principal;
+            try
+            {
+                principal = JWTHelper.GetPrincipalFromExpiredToken(
+                    refreshTokenDto.AccessToken,
+                    secretKey,
+                    jwtSettings["Issuer"],
+                    jwtSettings["Audience"]);
+            }
+            catch (SecurityTokenException)
+            {
+                throw new UnauthorizedException("Invalid refresh token");
+            }
 
             var userIdClaim = principal.FindFirst("userId")?.Value;
             if (!int.TryParse(userIdClaim, out int userId))

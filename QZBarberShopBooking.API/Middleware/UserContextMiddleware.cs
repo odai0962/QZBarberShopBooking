@@ -15,25 +15,8 @@ namespace QZBarberShopBooking.API.Middleware
 
         public async Task InvokeAsync(HttpContext context)
         {
-            if (!UserContextIsConfigured())
-            {
-                UserContext.Configure(_httpContextAccessor);
-            }
-
+            UserContext.Configure(_httpContextAccessor);
             await _next(context);
-        }
-
-        private bool UserContextIsConfigured()
-        {
-            try
-            {
-                var test = UserContext.IsAuthenticated;
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
         }
     }
 

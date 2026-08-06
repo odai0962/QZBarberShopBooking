@@ -49,6 +49,7 @@ builder.Services.AddControllers()
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ValidationFilter>();
+builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
 
 // Swagger
 builder.Services.AddSwaggerGen(options =>
@@ -132,7 +133,7 @@ builder.Services.AddHealthChecks()
 var app = builder.Build();
 
 // Middleware pipeline (order matters)
-app.UseGlobalExceptionHandler();
+app.UseExceptionHandler();
 
 // Serves wwwroot/employee-photos (and any future wwwroot content) directly — bypasses auth
 // entirely, matching the requirement that photo URLs load with no Authorization header.
