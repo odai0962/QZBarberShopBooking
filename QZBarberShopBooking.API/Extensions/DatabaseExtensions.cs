@@ -11,6 +11,8 @@ public static class DatabaseExtensions
     // Admin to create another Admin, so the very first one has to come from somewhere; this
     // seed only ever runs behind the IsDevelopment() guard below, never in Production.
     private const string BootstrapAdminPassword = "ChangeMe!123";
+    private const string BootstrapEmployeePassword = "ChangeMe!123";
+    private const string BootstrapCustomerPassword = "ChangeMe!123";
 
     public static async Task InitializeDatabaseAsync(this WebApplication app)
     {
@@ -38,6 +40,8 @@ public static class DatabaseExtensions
 
             await DatabaseSeeder.SeedAsync(dbContext, logger);
             await EnsureBootstrapAdminAsync(dbContext, scope.ServiceProvider, logger);
+            await EnsureBootstrapEmployeeAsync(dbContext, scope.ServiceProvider, logger);
+            await EnsureBootstrapCustomerAsync(dbContext, scope.ServiceProvider, logger);
         }
         catch (Exception ex)
         {
@@ -77,5 +81,76 @@ public static class DatabaseExtensions
         logger.LogWarning(
             "Seeded a development-only bootstrap admin — username: admin, password: {Password}. Change this immediately; use it only to create real Admin accounts via POST /api/Users.",
             BootstrapAdminPassword);
+    }
+
+    private static async Task EnsureBootstrapEmployeeAsync(BarberShopDbContext dbContext, IServiceProvider services, ILogger logger)
+    {
+        if (await dbContext.Set<Employee>().AnyAsync())
+            return;
+
+        var employeeRole = await dbContext.UserRoles.FirstOrDefaultAsync(r => r.Name == "Employee");
+        if (employeeRole is null)
+        {
+            logger.LogWarning("Cannot seed bootstrap employee: 'Employee' role not found.");
+            return;
+        }
+
+        var passwordService = services.GetRequiredService<PasswordService>();
+
+        dbContext.Set<Employee>().Add(new Employee
+        {
+            Username = "employee",
+            Email = "employee@qzbarbershop.local",
+            PasswordHash = passwordService.HashPassword(BootstrapEmployeePassword),
+            FirstName = "Test",
+            LastName = "Barber",
+            PhoneNumber = "0000000001",
+            IsActive = true,
+            RoleId = employeeRole.Id,
+            CreationDate = DateTime.UtcNow,
+            Specialization = "General Haircut",
+            HireDate = DateTime.UtcNow,
+            IsAvailableForBooking = true
+        });
+
+        await dbContext.SaveChangesAsync();
+
+        logger.LogWarning(
+            "Seeded a development-only bootstrap employee — username: employee, password: {Password}.",
+            BootstrapEmployeePassword);
+    }
+
+    private static async Task EnsureBootstrapCustomerAsync(BarberShopDbContext dbContext, IServiceProvider services, ILogger logger)
+    {
+        if (await dbContext.Set<Customer>().AnyAsync())
+            return;
+
+        var customerRole = await dbContext.UserRoles.FirstOrDefaultAsync(r => r.Name == "Customer");
+        if (customerRole is null)
+        {
+            logger.LogWarning("Cannot seed bootstrap customer: 'Customer' role not found.");
+            return;
+        }
+
+        var passwordService = services.GetRequiredService<PasswordService>();
+
+        dbContext.Set<Customer>().Add(new Customer
+        {
+            Username = "customer",
+            Email = "customer@qzbarbershop.local",
+            PasswordHash = passwordService.HashPassword(BootstrapCustomerPassword),
+            FirstName = "Test",
+            LastName = "Customer",
+            PhoneNumber = "0000000002",
+            IsActive = true,
+            RoleId = customerRole.Id,
+            CreationDate = DateTime.UtcNow
+        });
+
+        await dbContext.SaveChangesAsync();
+
+        logger.LogWarning(
+            "Seeded a development-only bootstrap customer — username: customer, password: {Password}.",
+            BootstrapCustomerPassword);
     }
 }
