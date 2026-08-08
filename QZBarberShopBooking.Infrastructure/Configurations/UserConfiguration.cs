@@ -57,9 +57,20 @@ namespace QZBarberShopBooking.Infrastructure.Configurations
                 builder.Property(u => u.RefreshTokenExpiryTime)
                     .HasColumnType("datetime2");
 
+                builder.Property(u => u.IsBlacklisted)
+                    .HasDefaultValue(false);
+
+                builder.Property(u => u.BlacklistedReason)
+                    .HasMaxLength(500);
+
                 builder.HasOne(u => u.Role)
                     .WithMany(r => r.Users)
                     .HasForeignKey(u => u.RoleId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                builder.HasOne(u => u.BlacklistedByAdmin)
+                    .WithMany()
+                    .HasForeignKey(u => u.BlacklistedByAdminId)
                     .OnDelete(DeleteBehavior.Restrict);
 
                 builder.HasIndex(u => u.Email)
@@ -75,6 +86,9 @@ namespace QZBarberShopBooking.Infrastructure.Configurations
 
                 builder.HasIndex(u => new { u.IsActive, u.RoleId })
                     .HasDatabaseName("IX_User_ActiveRole");
+
+                builder.HasIndex(u => u.IsBlacklisted)
+                    .HasDatabaseName("IX_User_Blacklisted");
 
                 builder.HasIndex("UserType")
                     .HasDatabaseName("IX_User_UserType");

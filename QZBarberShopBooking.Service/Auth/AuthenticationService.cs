@@ -55,8 +55,7 @@ namespace QZBarberShopBooking.Service.Auth
             if (user == null || !_passwordService.VerifyPassword(user.PasswordHash, loginDto.Password))
                 throw new UnauthorizedException("Invalid email or password");
 
-            if (!user.IsActive)
-                throw new UnauthorizedException("Account is deactivated");
+            EnsureAccountIsUsable(user);
 
             return await _tokenService.IssueTokensAsync(user, cancellationToken);
         }
@@ -99,12 +98,24 @@ namespace QZBarberShopBooking.Service.Auth
 
                 user = customer;
             }
-            else if (!user.IsActive)
+            else
             {
-                throw new UnauthorizedException("Account is deactivated");
+                EnsureAccountIsUsable(user);
             }
 
             return await _tokenService.IssueTokensAsync(user, cancellationToken);
+        }
+
+        // Defense-in-depth: blacklisting already forces IsActive = false as a side effect
+        // (UserService.BlacklistAsync), but this checks IsBlacklisted explicitly too in case that
+        // invariant is ever violated by a future code path, so the message stays accurate either way.
+        private static void EnsureAccountIsUsable(User user)
+        {
+            if (user.IsBlacklisted)
+                throw new UnauthorizedException("Account is blacklisted");
+
+            if (!user.IsActive)
+                throw new UnauthorizedException("Account is deactivated");
         }
 
         private async Task<string> GenerateUniqueUsernameAsync(string email, CancellationToken cancellationToken)
@@ -167,6 +178,10 @@ namespace QZBarberShopBooking.Service.Auth
 
             if (!user.RefreshTokenExpiryTime.HasValue || user.RefreshTokenExpiryTime <= DateTime.UtcNow)
                 throw new UnauthorizedException("Refresh token expired");
+
+            // Previously missing: a deactivated/blacklisted user could keep refreshing an
+            // already-issued token indefinitely since only Login/SocialLogin checked this.
+            EnsureAccountIsUsable(user);
 
             return await _tokenService.IssueTokensAsync(user, cancellationToken);
         }

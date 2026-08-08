@@ -16,6 +16,12 @@ namespace QZBarberShopBooking.Application.Interfaces
         Task<bool> CancelAsync(int id, int requesterId, bool isAdmin);
         Task<bool> ConfirmAsync(int id, int employeeId, bool isAdmin);
         Task<bool> CompleteAsync(int id, int employeeId, bool isAdmin);
+        Task<bool> CheckInAsync(int id, int employeeId, bool isAdmin);
+        Task<BookingDto> TransferAsync(int id, TransferBookingDto transferBookingDto, int requesterId, bool isAdmin);
+        Task<BookingDto> RescheduleAsync(int id, RescheduleBookingDto rescheduleBookingDto, int customerId);
+        Task<BookingDto> CreateOnBehalfAsync(CreateBookingOnBehalfDto createBookingOnBehalfDto, int initiatorId);
+        Task<BookingDto> CustomerApproveAsync(int id, int customerId);
+        Task<BookingDto> CustomerRejectAsync(int id, int customerId);
         Task<IEnumerable<TimeSlotDto>> GetAvailableTimeSlotsAsync(int employeeId, DateTime date, int durationMinutes, CancellationToken cancellationToken = default);
         Task<IEnumerable<DateAvailabilityDto>> GetAvailabilitySummaryAsync(int employeeId, DateOnly startDate, DateOnly endDate, int durationMinutes, CancellationToken cancellationToken = default);
         Task<IEnumerable<BookingDto>> GetCustomerBookingsAsync(int customerId);

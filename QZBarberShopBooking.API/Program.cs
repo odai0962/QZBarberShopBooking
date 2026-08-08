@@ -128,6 +128,7 @@ builder.Services.AddJwtAuthentication(configuration, builder.Environment.IsDevel
 builder.Services.AddInfrastructure(configuration);
 builder.Services.AddApplicationLayer();
 builder.Services.AddServiceLayer();
+builder.Services.AddHostedService<QZBarberShopBooking.Service.Bookings.NoShowCancellationService>();
 
 // CORS, rate limiting & health checks
 builder.Services.AddApiCors(configuration);

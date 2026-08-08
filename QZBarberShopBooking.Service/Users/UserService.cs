@@ -19,6 +19,7 @@ public class UserService : IUserProfileService, IUserAdminService, IScopedServic
     private readonly IRepository<Customer> _customerRepository;
     private readonly IRepository<Domain.Entities.Employee> _employeeRepository;
     private readonly IRepository<Admin> _adminRepository;
+    private readonly IRepository<UserDeviceToken> _deviceTokenRepository;
     private readonly PasswordService _passwordService;
     private readonly IMapper _mapper;
     private readonly IUnitOfWork _unitOfWork;
@@ -30,6 +31,7 @@ public class UserService : IUserProfileService, IUserAdminService, IScopedServic
         IRepository<Customer> customerRepository,
         IRepository<Domain.Entities.Employee> employeeRepository,
         IRepository<Admin> adminRepository,
+        IRepository<UserDeviceToken> deviceTokenRepository,
         PasswordService passwordService,
         IMapper mapper,
         IUnitOfWork unitOfWork,
@@ -40,6 +42,7 @@ public class UserService : IUserProfileService, IUserAdminService, IScopedServic
         _customerRepository = customerRepository;
         _employeeRepository = employeeRepository;
         _adminRepository = adminRepository;
+        _deviceTokenRepository = deviceTokenRepository;
         _passwordService = passwordService;
         _mapper = mapper;
         _unitOfWork = unitOfWork;
@@ -219,6 +222,11 @@ public class UserService : IUserProfileService, IUserAdminService, IScopedServic
         if (user == null || user.IsDeleted)
             throw new NotFoundException("User", id);
 
+        // A blacklisted account must be explicitly unblacklisted (PATCH .../unblacklist), not
+        // silently re-activated through this older, reason-less toggle.
+        if (user.IsBlacklisted && !user.IsActive)
+            throw new BusinessRuleException("This account is blacklisted. Unblacklist it before reactivating it.");
+
         user.IsActive = !user.IsActive;
         user.ModificationDate = DateTime.UtcNow;
 
@@ -226,6 +234,91 @@ public class UserService : IUserProfileService, IUserAdminService, IScopedServic
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
         return user.IsActive;
+    }
+
+    public async Task<UserDto> BlacklistAsync(int id, BlacklistUserDto blacklistUserDto, int adminId, CancellationToken cancellationToken = default)
+    {
+        var user = await _userRepository.GetAll()
+            .Include(u => u.Role)
+            .FirstOrDefaultAsync(u => u.Id == id && !u.IsDeleted, cancellationToken)
+            ?? throw new NotFoundException("User", id);
+
+        user.IsBlacklisted = true;
+        user.IsActive = false;
+        user.BlacklistedReason = blacklistUserDto.Reason;
+        user.BlacklistedAt = DateTime.UtcNow;
+        user.BlacklistedByAdminId = adminId;
+        user.ModificationDate = DateTime.UtcNow;
+
+        // Kill any already-issued refresh token immediately rather than waiting for it to expire.
+        user.RefreshToken = null;
+        user.RefreshTokenExpiryTime = null;
+
+        await _userRepository.UpdateAsync(user, cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return _mapper.Map<UserDto>(user);
+    }
+
+    public async Task<UserDto> UnblacklistAsync(int id, CancellationToken cancellationToken = default)
+    {
+        var user = await _userRepository.GetAll()
+            .Include(u => u.Role)
+            .FirstOrDefaultAsync(u => u.Id == id && !u.IsDeleted, cancellationToken)
+            ?? throw new NotFoundException("User", id);
+
+        user.IsBlacklisted = false;
+        user.IsActive = true;
+        user.ModificationDate = DateTime.UtcNow;
+
+        await _userRepository.UpdateAsync(user, cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return _mapper.Map<UserDto>(user);
+    }
+
+    public async Task RegisterDeviceTokenAsync(int userId, RegisterDeviceTokenDto registerDeviceTokenDto, CancellationToken cancellationToken = default)
+    {
+        var existing = await _deviceTokenRepository.GetAll()
+            .FirstOrDefaultAsync(t => t.DeviceToken == registerDeviceTokenDto.DeviceToken, cancellationToken);
+
+        if (existing != null)
+        {
+            // The same physical device token can move to a different account (e.g. sign-out then
+            // sign-in as someone else on the same phone) — upsert by token rather than reject.
+            existing.UserId = userId;
+            existing.DeviceType = registerDeviceTokenDto.DeviceType;
+            existing.IsActive = true;
+            existing.LastUsedAt = DateTime.UtcNow;
+            await _deviceTokenRepository.UpdateAsync(existing, cancellationToken);
+        }
+        else
+        {
+            await _deviceTokenRepository.InsertAsync(new UserDeviceToken
+            {
+                UserId = userId,
+                DeviceToken = registerDeviceTokenDto.DeviceToken,
+                DeviceType = registerDeviceTokenDto.DeviceType,
+                RegisteredAt = DateTime.UtcNow,
+                LastUsedAt = DateTime.UtcNow,
+                IsActive = true
+            }, cancellationToken);
+        }
+
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task UnregisterDeviceTokenAsync(int userId, string deviceToken, CancellationToken cancellationToken = default)
+    {
+        var existing = await _deviceTokenRepository.GetAll()
+            .FirstOrDefaultAsync(t => t.DeviceToken == deviceToken && t.UserId == userId, cancellationToken);
+
+        if (existing == null)
+            return;
+
+        existing.IsActive = false;
+        await _deviceTokenRepository.UpdateAsync(existing, cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
     }
 
     public async Task<UserProfileDto> GetProfileAsync(int userId, CancellationToken cancellationToken = default)

@@ -127,6 +127,61 @@ public class BookingsController : BaseApiController
         return Ok(ApiResponse.Success("Booking completed"));
     }
 
+    [HttpPost("{id:int}/check-in")]
+    [Authorize(Roles = "Employee,Admin")]
+    public async Task<ActionResult<ApiResponse>> CheckIn(int id)
+    {
+        var employeeId = UserContext.GetUserIdOrThrow();
+        await _bookingService.CheckInAsync(id, employeeId, UserContext.IsInRole("Admin"));
+        return Ok(ApiResponse.Success("Customer checked in"));
+    }
+
+    [HttpPost("{id:int}/transfer")]
+    [Authorize(Roles = "Employee,Admin")]
+    public async Task<ActionResult<ApiResponse<BookingDto>>> Transfer(int id, [FromBody] TransferBookingDto dto)
+    {
+        var requesterId = UserContext.GetUserIdOrThrow();
+        var booking = await _bookingService.TransferAsync(id, dto, requesterId, UserContext.IsInRole("Admin"));
+        return Ok(ApiResponse<BookingDto>.Success(booking, "Booking transferred"));
+    }
+
+    [HttpPost("{id:int}/reschedule")]
+    [Authorize(Roles = "Customer")]
+    public async Task<ActionResult<ApiResponse<BookingDto>>> Reschedule(int id, [FromBody] RescheduleBookingDto dto)
+    {
+        var customerId = UserContext.GetUserIdOrThrow();
+        var booking = await _bookingService.RescheduleAsync(id, dto, customerId);
+        return Ok(ApiResponse<BookingDto>.Success(booking, "Booking rescheduled"));
+    }
+
+    [HttpPost("employee-initiated")]
+    [Authorize(Roles = "Employee,Admin")]
+    public async Task<ActionResult<ApiResponse<BookingDto>>> CreateOnBehalf([FromBody] CreateBookingOnBehalfDto dto)
+    {
+        var initiatorId = UserContext.GetUserIdOrThrow();
+        var booking = await _bookingService.CreateOnBehalfAsync(dto, initiatorId);
+        return CreatedAtAction(nameof(GetById), new { id = booking.Id },
+            ApiResponse<BookingDto>.Success(booking, "Booking created, awaiting customer approval"));
+    }
+
+    [HttpPost("{id:int}/customer-approve")]
+    [Authorize(Roles = "Customer")]
+    public async Task<ActionResult<ApiResponse<BookingDto>>> CustomerApprove(int id)
+    {
+        var customerId = UserContext.GetUserIdOrThrow();
+        var booking = await _bookingService.CustomerApproveAsync(id, customerId);
+        return Ok(ApiResponse<BookingDto>.Success(booking, "Booking approved"));
+    }
+
+    [HttpPost("{id:int}/customer-reject")]
+    [Authorize(Roles = "Customer")]
+    public async Task<ActionResult<ApiResponse<BookingDto>>> CustomerReject(int id)
+    {
+        var customerId = UserContext.GetUserIdOrThrow();
+        var booking = await _bookingService.CustomerRejectAsync(id, customerId);
+        return Ok(ApiResponse<BookingDto>.Success(booking, "Booking rejected"));
+    }
+
     [HttpGet("stats")]
     [Authorize(Roles = "Admin")]
     public async Task<ActionResult<ApiResponse<BookingStatsDto>>> GetStats(

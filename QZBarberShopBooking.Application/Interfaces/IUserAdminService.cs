@@ -20,5 +20,9 @@ namespace QZBarberShopBooking.Application.Interfaces
         Task<bool> DeleteAsync(int id, CancellationToken cancellationToken = default);
 
         Task<bool> ToggleStatusAsync(int id, CancellationToken cancellationToken = default);
+
+        Task<UserDto> BlacklistAsync(int id, BlacklistUserDto blacklistUserDto, int adminId, CancellationToken cancellationToken = default);
+
+        Task<UserDto> UnblacklistAsync(int id, CancellationToken cancellationToken = default);
     }
 }

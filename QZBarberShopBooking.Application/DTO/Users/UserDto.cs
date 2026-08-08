@@ -16,5 +16,8 @@ namespace QZBarberShopBooking.Application.DTO.Users
         public required string PhoneNumber { get; set; }
         public required string Role { get; set; }
         public bool IsActive { get; set; }
+        public bool IsBlacklisted { get; set; }
+        public string? BlacklistedReason { get; set; }
+        public DateTime? BlacklistedAt { get; set; }
     }
 }

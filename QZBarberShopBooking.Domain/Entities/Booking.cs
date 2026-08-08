@@ -29,5 +29,14 @@ namespace QZBarberShopBooking.Domain.Entities
         public int EmployeeId { get; set; }
         public Employee AssignedEmployee { get; set; } = null!;
         public ICollection<BookingServiceLine> Services { get; set; } = new List<BookingServiceLine>();
+
+        public BookingCancellationReason? CancellationReason { get; set; }
+        public int RescheduleCount { get; set; }
+        public BookingSource Source { get; set; } = BookingSource.Customer;
+
+        // Set when an Employee/Admin books this on the customer's behalf, so the customer's
+        // approve/reject endpoints know which Pending bookings need their response.
+        public int? InitiatedByUserId { get; set; }
+        public User? InitiatedByUser { get; set; }
     }
 }

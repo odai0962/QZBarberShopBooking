@@ -34,4 +34,20 @@ public class ProfileController : BaseApiController
         var profile = await _userService.UpdateProfileAsync(userId, updateProfileDto);
         return Ok(ApiResponse<UserProfileDto>.Success(profile, "Profile updated successfully"));
     }
+
+    [HttpPost("device-token")]
+    public async Task<ActionResult<ApiResponse>> RegisterDeviceToken([FromBody] RegisterDeviceTokenDto dto)
+    {
+        var userId = UserContext.GetUserIdOrThrow();
+        await _userService.RegisterDeviceTokenAsync(userId, dto);
+        return Ok(ApiResponse.Success("Device token registered"));
+    }
+
+    [HttpDelete("device-token")]
+    public async Task<ActionResult<ApiResponse>> UnregisterDeviceToken([FromQuery] string deviceToken)
+    {
+        var userId = UserContext.GetUserIdOrThrow();
+        await _userService.UnregisterDeviceTokenAsync(userId, deviceToken);
+        return Ok(ApiResponse.Success("Device token unregistered"));
+    }
 }

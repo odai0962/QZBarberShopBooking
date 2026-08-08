@@ -26,8 +26,8 @@
 		<PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.1" />
 		<!-- Microsoft.Extensions.Configuration.Abstractions is no longer listed explicitly — the
 		     FrameworkReference above already brings it in transitively (NU1510). -->
-		<!-- Version picked from memory, not verified against NuGet from this environment —
-		     run `dotnet add package FirebaseAdmin` in this project to confirm/update it. -->
+		<!-- Confirmed against the restored package: FirebaseAdmin.Messaging.FirebaseMessaging and
+		     SendEachForMulticastAsync (used by FirebasePushNotificationSender) exist in 3.1.0. -->
 		<PackageReference Include="FirebaseAdmin" Version="3.1.0" />
 	</ItemGroup>
 

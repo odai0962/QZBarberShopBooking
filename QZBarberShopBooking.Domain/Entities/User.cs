@@ -17,6 +17,14 @@ namespace QZBarberShopBooking.Domain.Entities
         public string? RefreshToken { get; set; }
         public DateTime? RefreshTokenExpiryTime { get; set; }
 
+        // Blacklist (Admin-only). Distinct from IsActive/soft-delete so it carries a reason/audit
+        // trail; blacklisting always also forces IsActive = false as a side effect.
+        public bool IsBlacklisted { get; set; }
+        public string? BlacklistedReason { get; set; }
+        public DateTime? BlacklistedAt { get; set; }
+        public int? BlacklistedByAdminId { get; set; }
+        public User? BlacklistedByAdmin { get; set; }
+
         // Password reset
         public string? ResetPasswordToken { get; set; }
         public DateTime? ResetPasswordTokenExpiry { get; set; }

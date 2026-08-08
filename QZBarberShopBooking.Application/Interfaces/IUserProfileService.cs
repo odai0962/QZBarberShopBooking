@@ -13,5 +13,9 @@ namespace QZBarberShopBooking.Application.Interfaces
         Task<UserProfileDto> GetProfileAsync(int userId, CancellationToken cancellationToken = default);
 
         Task<UserProfileDto> UpdateProfileAsync(int userId, UpdateProfileDto updateProfileDto, CancellationToken cancellationToken = default);
+
+        Task RegisterDeviceTokenAsync(int userId, RegisterDeviceTokenDto registerDeviceTokenDto, CancellationToken cancellationToken = default);
+
+        Task UnregisterDeviceTokenAsync(int userId, string deviceToken, CancellationToken cancellationToken = default);
     }
 }

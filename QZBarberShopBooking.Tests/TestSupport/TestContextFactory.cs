@@ -53,4 +53,22 @@ internal sealed class NoOpNotificationService : INotificationService
 {
     public Task NotifyEmployeeBookingCreatedAsync(QZBarberShopBooking.Domain.Entities.Booking booking, CancellationToken cancellationToken = default)
         => Task.CompletedTask;
+
+    public Task NotifyBookingApprovalRequestedAsync(QZBarberShopBooking.Domain.Entities.Booking booking, CancellationToken cancellationToken = default)
+        => Task.CompletedTask;
+
+    public Task NotifyBookingConfirmedAsync(QZBarberShopBooking.Domain.Entities.Booking booking, CancellationToken cancellationToken = default)
+        => Task.CompletedTask;
+
+    public Task NotifyBookingCancelledAsync(QZBarberShopBooking.Domain.Entities.Booking booking, CancellationToken cancellationToken = default)
+        => Task.CompletedTask;
+
+    public Task NotifyBookingRespondedByCustomerAsync(QZBarberShopBooking.Domain.Entities.Booking booking, bool approved, CancellationToken cancellationToken = default)
+        => Task.CompletedTask;
+
+    public Task<IEnumerable<QZBarberShopBooking.Application.DTO.Notifications.NotificationDto>> GetMyNotificationsAsync(int userId, CancellationToken cancellationToken = default)
+        => Task.FromResult(Enumerable.Empty<QZBarberShopBooking.Application.DTO.Notifications.NotificationDto>());
+
+    public Task MarkAsReadAsync(int notificationId, int userId, CancellationToken cancellationToken = default)
+        => Task.CompletedTask;
 }

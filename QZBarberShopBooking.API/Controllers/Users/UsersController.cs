@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using QZBarberShopBooking.API.Controllers.Base;
 using QZBarberShopBooking.Application.DTO.Shared;
 using QZBarberShopBooking.Application.DTO.Users;
+using QZBarberShopBooking.Application.Helpers;
 using QZBarberShopBooking.Application.Interfaces;
 
 namespace QZBarberShopBooking.API.Controllers.Users;
@@ -68,5 +69,20 @@ public class UsersController : BaseApiController
         var isActive = await _userService.ToggleStatusAsync(id);
         return Ok(ApiResponse<bool>.Success(isActive,
             isActive ? "User activated successfully" : "User deactivated successfully"));
+    }
+
+    [HttpPatch("{id}/blacklist")]
+    public async Task<ActionResult<ApiResponse<UserDto>>> Blacklist(int id, [FromBody] BlacklistUserDto dto)
+    {
+        var adminId = UserContext.GetUserIdOrThrow();
+        var user = await _userService.BlacklistAsync(id, dto, adminId);
+        return Ok(ApiResponse<UserDto>.Success(user, "User blacklisted"));
+    }
+
+    [HttpPatch("{id}/unblacklist")]
+    public async Task<ActionResult<ApiResponse<UserDto>>> Unblacklist(int id)
+    {
+        var user = await _userService.UnblacklistAsync(id);
+        return Ok(ApiResponse<UserDto>.Success(user, "User unblacklisted"));
     }
 }

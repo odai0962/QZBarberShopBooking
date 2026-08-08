@@ -24,6 +24,17 @@ public class BookingService : IBookingService, IScopedService
     private readonly IMapper _mapper;
     private readonly IUnitOfWork _unitOfWork;
 
+    // Single source of truth for which BookingStatus transitions are legal. Every status-changing
+    // method routes through EnsureValidTransition so this table is the only place the rules live.
+    private static readonly Dictionary<BookingStatus, BookingStatus[]> ValidTransitions = new()
+    {
+        [BookingStatus.Pending] = [BookingStatus.Confirmed, BookingStatus.Cancelled],
+        [BookingStatus.Confirmed] = [BookingStatus.CheckedIn, BookingStatus.Completed, BookingStatus.Cancelled],
+        [BookingStatus.CheckedIn] = [BookingStatus.Completed, BookingStatus.Cancelled],
+        [BookingStatus.Completed] = [],
+        [BookingStatus.Cancelled] = []
+    };
+
     public BookingService(
         IRepository<Domain.Entities.Booking> bookingRepository,
         IRepository<Customer> customerRepository,
@@ -109,71 +120,55 @@ public class BookingService : IBookingService, IScopedService
                 .FirstOrDefaultAsync(c => c.Id == customerId && !c.IsDeleted, ct)
                 ?? throw new NotFoundException("Customer", customerId);
 
-            var employee = await _employeeRepository.GetAll()
-                .FirstOrDefaultAsync(e => e.Id == createBookingDto.EmployeeId && !e.IsDeleted && e.IsActive, ct)
-                ?? throw new NotFoundException("Employee", createBookingDto.EmployeeId);
-
-            if (employee.IsAvailableForBooking != true)
-                throw new BusinessRuleException("This barber is not available for booking.");
-
-            if (createBookingDto.Services.Count == 0)
-                throw new ValidationException(new Dictionary<string, string[]>
-                {
-                    { "Services", ["Select at least one service."] }
-                });
-
-            var lineItems = await ResolveLineItemsAsync(createBookingDto.EmployeeId, createBookingDto.Services, ct);
-            var totalDuration = TimeSpan.FromTicks(lineItems.Sum(x => x.Duration.Ticks));
-            var startUtc = DateTime.SpecifyKind(createBookingDto.RequestedStartUtc, DateTimeKind.Utc);
-            var endUtc = startUtc.Add(totalDuration);
-
-            await EnsureNoOverlapAsync(createBookingDto.EmployeeId, startUtc, endUtc, null, ct);
-
-            var subTotal = lineItems.Sum(x => x.Price);
-            var discount = createBookingDto.DiscountPercentage.HasValue
-                ? subTotal * createBookingDto.DiscountPercentage.Value / 100m
-                : 0m;
-            var tax = 0m;
-            var total = subTotal - discount + tax;
-
-            var booking = new Domain.Entities.Booking
-            {
-                BookingNumber = Guid.NewGuid().ToString("N")[..8].ToUpperInvariant(),
-                BookingDate = startUtc.Date,
-                StartTimeUtc = startUtc,
-                EndTimeUtc = endUtc,
-                Status = BookingStatus.Confirmed,
-                Notes = createBookingDto.Notes,
-                SubTotal = subTotal,
-                DiscountAmount = discount,
-                TaxAmount = tax,
-                TotalAmount = total,
-                CustomerId = customer.Id,
-                EmployeeId = employee.Id,
-                CreatedBy = customerId,
-                CreationDate = DateTime.UtcNow
-            };
-
-            var cursor = startUtc;
-            foreach (var item in lineItems)
-            {
-                booking.Services.Add(new BookingServiceLine
-                {
-                    ServiceId = item.ServiceId,
-                    EmployeeId = employee.Id,
-                    Price = item.Price,
-                    StartTimeUtc = cursor,
-                    EndTimeUtc = cursor.Add(item.Duration),
-                    CreatedBy = customerId,
-                    CreationDate = DateTime.UtcNow
-                });
-                cursor = cursor.Add(item.Duration);
-            }
-
-            await _bookingRepository.InsertAsync(booking, ct);
-            await _unitOfWork.SaveChangesAsync(ct);
+            var booking = await BuildAndInsertBookingAsync(
+                customer.Id,
+                createBookingDto.EmployeeId,
+                createBookingDto.RequestedStartUtc,
+                createBookingDto.Notes,
+                createBookingDto.Services,
+                createBookingDto.DiscountPercentage,
+                BookingStatus.Pending,
+                BookingSource.Customer,
+                createdBy: customerId,
+                initiatedByUserId: null,
+                ct);
 
             await _notificationService.NotifyEmployeeBookingCreatedAsync(booking, ct);
+
+            var loaded = await LoadBookingQuery().FirstAsync(b => b.Id == booking.Id, ct);
+            result = MapBooking(loaded);
+        });
+
+        return result!;
+    }
+
+    public async Task<BookingDto> CreateOnBehalfAsync(CreateBookingOnBehalfDto createBookingOnBehalfDto, int initiatorId)
+    {
+        BookingDto? result = null;
+
+        await _unitOfWork.ExecuteInTransactionAsync(async ct =>
+        {
+            var customer = await _customerRepository.GetAll()
+                .FirstOrDefaultAsync(c => c.Id == createBookingOnBehalfDto.CustomerId && !c.IsDeleted, ct)
+                ?? throw new NotFoundException("Customer", createBookingOnBehalfDto.CustomerId);
+
+            if (!customer.IsActive)
+                throw new BusinessRuleException("This customer's account is not active.");
+
+            var booking = await BuildAndInsertBookingAsync(
+                customer.Id,
+                createBookingOnBehalfDto.EmployeeId,
+                createBookingOnBehalfDto.RequestedStartUtc,
+                createBookingOnBehalfDto.Notes,
+                createBookingOnBehalfDto.Services,
+                createBookingOnBehalfDto.DiscountPercentage,
+                BookingStatus.Pending,
+                BookingSource.EmployeeOnBehalf,
+                createdBy: initiatorId,
+                initiatedByUserId: initiatorId,
+                ct);
+
+            await _notificationService.NotifyBookingApprovalRequestedAsync(booking, ct);
 
             var loaded = await LoadBookingQuery().FirstAsync(b => b.Id == booking.Id, ct);
             result = MapBooking(loaded);
@@ -208,12 +203,25 @@ public class BookingService : IBookingService, IScopedService
         if (!isAdmin && booking.CustomerId != requesterId && booking.EmployeeId != requesterId)
             throw new ForbiddenException("You cannot cancel this booking.");
 
+        EnsureValidTransition(booking.Status, BookingStatus.Cancelled);
+
+        var reason = isAdmin
+            ? BookingCancellationReason.AdminCancelled
+            : booking.CustomerId == requesterId
+                ? BookingCancellationReason.CustomerCancelled
+                : BookingCancellationReason.EmployeeCancelled;
+
         booking.Status = BookingStatus.Cancelled;
+        booking.CancellationReason = reason;
         booking.ModificationDate = DateTime.UtcNow;
         booking.ModifiedBy = requesterId;
 
         await _bookingRepository.UpdateAsync(booking);
         await _unitOfWork.SaveChangesAsync();
+
+        if (reason != BookingCancellationReason.CustomerCancelled)
+            await _notificationService.NotifyBookingCancelledAsync(booking);
+
         return true;
     }
 
@@ -222,9 +230,184 @@ public class BookingService : IBookingService, IScopedService
         return await UpdateStatusForEmployeeAsync(id, employeeId, isAdmin, BookingStatus.Confirmed);
     }
 
+    public async Task<bool> CheckInAsync(int id, int employeeId, bool isAdmin)
+    {
+        return await UpdateStatusForEmployeeAsync(id, employeeId, isAdmin, BookingStatus.CheckedIn);
+    }
+
     public async Task<bool> CompleteAsync(int id, int employeeId, bool isAdmin)
     {
         return await UpdateStatusForEmployeeAsync(id, employeeId, isAdmin, BookingStatus.Completed);
+    }
+
+    public async Task<BookingDto> TransferAsync(int id, TransferBookingDto transferBookingDto, int requesterId, bool isAdmin)
+    {
+        var booking = await _bookingRepository.GetAll()
+            .Include(b => b.Services)
+            .FirstOrDefaultAsync(b => b.Id == id && !b.IsDeleted)
+            ?? throw new NotFoundException("Booking", id);
+
+        if (!isAdmin && booking.EmployeeId != requesterId)
+            throw new ForbiddenException("You cannot transfer this booking.");
+
+        if (booking.Status is not (BookingStatus.Pending or BookingStatus.Confirmed))
+            throw new BusinessRuleException("Only a pending or confirmed booking can be transferred.");
+
+        if (booking.StartTimeUtc <= DateTime.UtcNow)
+            throw new BusinessRuleException("Past bookings cannot be transferred.");
+
+        if (transferBookingDto.EmployeeId == booking.EmployeeId)
+            throw new BusinessRuleException("This booking is already assigned to that barber.");
+
+        var targetEmployee = await _employeeRepository.GetAll()
+            .FirstOrDefaultAsync(e => e.Id == transferBookingDto.EmployeeId && !e.IsDeleted && e.IsActive)
+            ?? throw new NotFoundException("Employee", transferBookingDto.EmployeeId);
+
+        if (targetEmployee.IsAvailableForBooking != true)
+            throw new BusinessRuleException("This barber is not available for booking.");
+
+        var requestedServices = booking.Services
+            .Select(s => new CreateBookingServiceDto { ServiceId = s.ServiceId })
+            .ToList();
+
+        var lineItems = await ResolveLineItemsAsync(transferBookingDto.EmployeeId, requestedServices, default);
+        var totalDuration = TimeSpan.FromTicks(lineItems.Sum(x => x.Duration.Ticks));
+        var newEnd = booking.StartTimeUtc.Add(totalDuration);
+
+        await EnsureNoOverlapAsync(transferBookingDto.EmployeeId, booking.StartTimeUtc, newEnd, booking.Id, default);
+
+        // Preserve the original discount rate (not amount) since re-pricing per the new
+        // employee can change SubTotal.
+        var discountRate = booking.SubTotal > 0 ? (booking.DiscountAmount ?? 0m) / booking.SubTotal : 0m;
+        var newSubTotal = lineItems.Sum(x => x.Price);
+        var newDiscount = newSubTotal * discountRate;
+
+        booking.EmployeeId = targetEmployee.Id;
+        booking.EndTimeUtc = newEnd;
+        booking.SubTotal = newSubTotal;
+        booking.DiscountAmount = newDiscount;
+        booking.TotalAmount = newSubTotal - newDiscount + booking.TaxAmount;
+        booking.ModificationDate = DateTime.UtcNow;
+        booking.ModifiedBy = requesterId;
+
+        var cursor = booking.StartTimeUtc;
+        var lineItemsQueue = new Queue<BookingLineItem>(lineItems);
+        foreach (var line in booking.Services)
+        {
+            var item = lineItemsQueue.Dequeue();
+            line.EmployeeId = targetEmployee.Id;
+            line.Price = item.Price;
+            line.StartTimeUtc = cursor;
+            line.EndTimeUtc = cursor.Add(item.Duration);
+            cursor = cursor.Add(item.Duration);
+        }
+
+        await _bookingRepository.UpdateAsync(booking);
+        await _unitOfWork.SaveChangesAsync();
+
+        var loaded = await LoadBookingQuery().FirstAsync(b => b.Id == booking.Id);
+        return MapBooking(loaded);
+    }
+
+    public async Task<BookingDto> RescheduleAsync(int id, RescheduleBookingDto rescheduleBookingDto, int customerId)
+    {
+        var booking = await _bookingRepository.GetAll()
+            .Include(b => b.Services)
+            .FirstOrDefaultAsync(b => b.Id == id && !b.IsDeleted)
+            ?? throw new NotFoundException("Booking", id);
+
+        if (booking.CustomerId != customerId)
+            throw new ForbiddenException("You cannot reschedule this booking.");
+
+        if (booking.Status != BookingStatus.Confirmed)
+            throw new BusinessRuleException("Only a confirmed booking can be rescheduled.");
+
+        if (booking.RescheduleCount >= 1)
+            throw new BusinessRuleException("This booking has already been rescheduled once.");
+
+        if (DateTime.UtcNow >= booking.StartTimeUtc.AddHours(-2))
+            throw new BusinessRuleException("A booking cannot be rescheduled within 2 hours of its start time.");
+
+        var duration = booking.EndTimeUtc - booking.StartTimeUtc;
+        var newStart = DateTime.SpecifyKind(rescheduleBookingDto.RequestedStartUtc, DateTimeKind.Utc);
+        var newEnd = newStart.Add(duration);
+
+        await EnsureNoOverlapAsync(booking.EmployeeId, newStart, newEnd, booking.Id, default);
+        await EnsureNoActiveBookingSameDayAsync(booking.CustomerId, newStart.Date, booking.Id, default);
+
+        var offset = newStart - booking.StartTimeUtc;
+        foreach (var line in booking.Services)
+        {
+            line.StartTimeUtc = line.StartTimeUtc.Add(offset);
+            line.EndTimeUtc = line.EndTimeUtc.Add(offset);
+        }
+
+        booking.BookingDate = newStart.Date;
+        booking.StartTimeUtc = newStart;
+        booking.EndTimeUtc = newEnd;
+        booking.RescheduleCount++;
+        booking.ModificationDate = DateTime.UtcNow;
+        booking.ModifiedBy = customerId;
+
+        await _bookingRepository.UpdateAsync(booking);
+        await _unitOfWork.SaveChangesAsync();
+
+        var loaded = await LoadBookingQuery().FirstAsync(b => b.Id == booking.Id);
+        return MapBooking(loaded);
+    }
+
+    public async Task<BookingDto> CustomerApproveAsync(int id, int customerId)
+    {
+        var booking = await EnsureRespondableByCustomerAsync(id, customerId);
+
+        EnsureValidTransition(booking.Status, BookingStatus.Confirmed);
+
+        booking.Status = BookingStatus.Confirmed;
+        booking.ModificationDate = DateTime.UtcNow;
+        booking.ModifiedBy = customerId;
+
+        await _bookingRepository.UpdateAsync(booking);
+        await _unitOfWork.SaveChangesAsync();
+
+        await _notificationService.NotifyBookingRespondedByCustomerAsync(booking, approved: true);
+
+        var loaded = await LoadBookingQuery().FirstAsync(b => b.Id == booking.Id);
+        return MapBooking(loaded);
+    }
+
+    public async Task<BookingDto> CustomerRejectAsync(int id, int customerId)
+    {
+        var booking = await EnsureRespondableByCustomerAsync(id, customerId);
+
+        EnsureValidTransition(booking.Status, BookingStatus.Cancelled);
+
+        booking.Status = BookingStatus.Cancelled;
+        booking.CancellationReason = BookingCancellationReason.CustomerRejected;
+        booking.ModificationDate = DateTime.UtcNow;
+        booking.ModifiedBy = customerId;
+
+        await _bookingRepository.UpdateAsync(booking);
+        await _unitOfWork.SaveChangesAsync();
+
+        await _notificationService.NotifyBookingRespondedByCustomerAsync(booking, approved: false);
+
+        var loaded = await LoadBookingQuery().FirstAsync(b => b.Id == booking.Id);
+        return MapBooking(loaded);
+    }
+
+    private async Task<Domain.Entities.Booking> EnsureRespondableByCustomerAsync(int id, int customerId)
+    {
+        var booking = await _bookingRepository.GetAll()
+            .FirstOrDefaultAsync(b => b.Id == id && !b.IsDeleted)
+            ?? throw new NotFoundException("Booking", id);
+
+        if (booking.CustomerId != customerId)
+            throw new ForbiddenException("You cannot respond to this booking.");
+
+        if (booking.Source != BookingSource.EmployeeOnBehalf || booking.Status != BookingStatus.Pending)
+            throw new BusinessRuleException("This booking does not require your approval.");
+
+        return booking;
     }
 
     public async Task<IEnumerable<TimeSlotDto>> GetAvailableTimeSlotsAsync(
@@ -366,6 +549,12 @@ public class BookingService : IBookingService, IScopedService
         };
     }
 
+    private static void EnsureValidTransition(BookingStatus current, BookingStatus target)
+    {
+        if (!ValidTransitions.TryGetValue(current, out var allowed) || !allowed.Contains(target))
+            throw new BusinessRuleException($"Cannot change booking status from {current} to {target}.");
+    }
+
     private async Task<bool> UpdateStatusForEmployeeAsync(int id, int employeeId, bool isAdmin, BookingStatus status)
     {
         var booking = await _bookingRepository.GetAll()
@@ -375,13 +564,104 @@ public class BookingService : IBookingService, IScopedService
         if (!isAdmin && booking.EmployeeId != employeeId)
             throw new ForbiddenException("You cannot update this booking.");
 
+        EnsureValidTransition(booking.Status, status);
+
         booking.Status = status;
         booking.ModificationDate = DateTime.UtcNow;
         booking.ModifiedBy = employeeId;
 
         await _bookingRepository.UpdateAsync(booking);
         await _unitOfWork.SaveChangesAsync();
+
+        if (status == BookingStatus.Confirmed)
+            await _notificationService.NotifyBookingConfirmedAsync(booking);
+
         return true;
+    }
+
+    // Shared by CreateAsync/CreateOnBehalfAsync: resolves services, checks overlap and the
+    // one-booking-per-day rule, builds the Booking + its BookingServiceLine rows, and inserts it.
+    private async Task<Domain.Entities.Booking> BuildAndInsertBookingAsync(
+        int customerId,
+        int employeeId,
+        DateTime requestedStartUtc,
+        string? notes,
+        List<CreateBookingServiceDto> services,
+        int? discountPercentage,
+        BookingStatus status,
+        BookingSource source,
+        int createdBy,
+        int? initiatedByUserId,
+        CancellationToken cancellationToken)
+    {
+        var employee = await _employeeRepository.GetAll()
+            .FirstOrDefaultAsync(e => e.Id == employeeId && !e.IsDeleted && e.IsActive, cancellationToken)
+            ?? throw new NotFoundException("Employee", employeeId);
+
+        if (employee.IsAvailableForBooking != true)
+            throw new BusinessRuleException("This barber is not available for booking.");
+
+        if (services.Count == 0)
+            throw new ValidationException(new Dictionary<string, string[]>
+            {
+                { "Services", ["Select at least one service."] }
+            });
+
+        var lineItems = await ResolveLineItemsAsync(employeeId, services, cancellationToken);
+        var totalDuration = TimeSpan.FromTicks(lineItems.Sum(x => x.Duration.Ticks));
+        var startUtc = DateTime.SpecifyKind(requestedStartUtc, DateTimeKind.Utc);
+        var endUtc = startUtc.Add(totalDuration);
+
+        await EnsureNoOverlapAsync(employeeId, startUtc, endUtc, null, cancellationToken);
+        await EnsureNoActiveBookingSameDayAsync(customerId, startUtc.Date, null, cancellationToken);
+
+        var subTotal = lineItems.Sum(x => x.Price);
+        var discount = discountPercentage.HasValue
+            ? subTotal * discountPercentage.Value / 100m
+            : 0m;
+        var tax = 0m;
+        var total = subTotal - discount + tax;
+
+        var booking = new Domain.Entities.Booking
+        {
+            BookingNumber = Guid.NewGuid().ToString("N")[..8].ToUpperInvariant(),
+            BookingDate = startUtc.Date,
+            StartTimeUtc = startUtc,
+            EndTimeUtc = endUtc,
+            Status = status,
+            Source = source,
+            InitiatedByUserId = initiatedByUserId,
+            Notes = notes,
+            SubTotal = subTotal,
+            DiscountAmount = discount,
+            TaxAmount = tax,
+            TotalAmount = total,
+            CustomerId = customerId,
+            EmployeeId = employee.Id,
+            CreatedBy = createdBy,
+            CreationDate = DateTime.UtcNow
+        };
+
+        var cursor = startUtc;
+        foreach (var item in lineItems)
+        {
+            booking.Services.Add(new BookingServiceLine
+            {
+                ServiceId = item.ServiceId,
+                EmployeeId = employee.Id,
+                Price = item.Price,
+                StartTimeUtc = cursor,
+                EndTimeUtc = cursor.Add(item.Duration),
+                CreatedBy = createdBy,
+                CreationDate = DateTime.UtcNow
+            });
+            cursor = cursor.Add(item.Duration);
+        }
+
+        await _bookingRepository.InsertAsync(booking, cancellationToken);
+        await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        return booking;
     }
 
     private async Task EnsureNoOverlapAsync(
@@ -406,6 +686,26 @@ public class BookingService : IBookingService, IScopedService
 
         if (hasOverlap)
             throw new ConflictException("The selected time slot is no longer available.");
+    }
+
+    private async Task EnsureNoActiveBookingSameDayAsync(
+        int customerId,
+        DateTime date,
+        int? excludeBookingId,
+        CancellationToken cancellationToken)
+    {
+        var day = date.Date;
+        var hasBookingSameDay = await _bookingRepository.GetAll()
+            .AnyAsync(b =>
+                b.CustomerId == customerId &&
+                !b.IsDeleted &&
+                b.Status != BookingStatus.Cancelled &&
+                b.BookingDate == day &&
+                (excludeBookingId == null || b.Id != excludeBookingId),
+                cancellationToken);
+
+        if (hasBookingSameDay)
+            throw new BusinessRuleException("You already have a booking on this day.");
     }
 
     private async Task<List<BookingLineItem>> ResolveLineItemsAsync(

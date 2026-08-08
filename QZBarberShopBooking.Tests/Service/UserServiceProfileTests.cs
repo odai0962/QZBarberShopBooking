@@ -39,6 +39,7 @@ public class UserServiceProfileTests
             Repo<Customer>(),
             Repo<Employee>(),
             Repo<Admin>(),
+            Repo<UserDeviceToken>(),
             new PasswordService(),
             TestContextFactory.CreateMapper(),
             new UnitOfWork(context, cache),

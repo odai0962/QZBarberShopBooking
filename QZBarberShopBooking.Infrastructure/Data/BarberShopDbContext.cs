@@ -27,6 +27,8 @@ namespace QZBarberShopBooking.Infrastructure.Data
         public DbSet<Page> Pages { get; set; }
         public DbSet<PagePermission> PagePermissions { get; set; }
         public DbSet<PagePlatform> PagePlatforms { get; set; }
+        public DbSet<Notification> Notifications { get; set; }
+        public DbSet<UserDeviceToken> UserDeviceTokens { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

@@ -61,7 +61,10 @@ public class BookingServiceOwnershipTests
             BookingDate = DateTime.UtcNow.Date,
             StartTimeUtc = DateTime.UtcNow,
             EndTimeUtc = DateTime.UtcNow.AddMinutes(30),
-            Status = BookingStatus.Confirmed,
+            // Pending (not Confirmed) so ConfirmAsync_Succeeds_ForAdmin_OnAnotherEmployeesBooking
+            // exercises a legal Pending -> Confirmed transition under the new state-machine guard;
+            // CancelAsync's Pending -> Cancelled is legal too, so the other tests are unaffected.
+            Status = BookingStatus.Pending,
             CustomerId = CustomerId,
             EmployeeId = OwningEmployeeId,
             SubTotal = 10,

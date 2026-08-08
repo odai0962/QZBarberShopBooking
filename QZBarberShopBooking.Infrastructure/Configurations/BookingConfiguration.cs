@@ -37,6 +37,11 @@ namespace QZBarberShopBooking.Infrastructure.Configurations
                 .OnDelete(DeleteBehavior.Restrict)
                 .IsRequired();
 
+            builder.HasOne(b => b.InitiatedByUser)
+                .WithMany()
+                .HasForeignKey(b => b.InitiatedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             builder.HasMany(b => b.Services)
                 .WithOne(bs => bs.Booking)
                 .HasForeignKey(bs => bs.BookingId)
@@ -57,6 +62,18 @@ namespace QZBarberShopBooking.Infrastructure.Configurations
             builder.Property(b => b.Status)
                 .HasConversion<string>()
                 .HasMaxLength(20);
+
+            builder.Property(b => b.CancellationReason)
+                .HasConversion<string>()
+                .HasMaxLength(30);
+
+            builder.Property(b => b.Source)
+                .HasConversion<string>()
+                .HasMaxLength(20)
+                .HasDefaultValue(Domain.Enums.BookingSource.Customer);
+
+            builder.Property(b => b.RescheduleCount)
+                .HasDefaultValue(0);
 
             builder.Property(b => b.Notes)
                 .HasMaxLength(500);
